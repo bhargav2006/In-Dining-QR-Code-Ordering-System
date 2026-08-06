@@ -450,11 +450,11 @@ export default function CustomerPortal() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <button onClick={() => setIsOrdersOpen(true)} className="btn-secondary" style={{ position: 'relative' }}>
-            <Clock size={18} /> My Orders
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', flex: '1 1 auto', width: '100%', maxWidth: '100%' }}>
+          <button onClick={() => setIsOrdersOpen(true)} className="btn-secondary" style={{ flex: '1 1 auto', justifyContent: 'center', padding: '0.65rem 0.85rem', fontSize: '0.85rem', whiteSpace: 'nowrap', position: 'relative' }}>
+            <Clock size={16} /> My Orders
             {myOrders.length > 0 && (
-              <span style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#38bdf8', color: '#0f172a', borderRadius: '9999px', width: '20px', height: '20px', fontSize: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#38bdf8', color: '#0f172a', borderRadius: '9999px', width: '18px', height: '18px', fontSize: '0.7rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {myOrders.length}
               </span>
             )}
@@ -477,17 +477,22 @@ export default function CustomerPortal() {
             }}
             className="btn-primary"
             style={{
+              flex: '1 1 auto',
+              justifyContent: 'center',
+              padding: '0.65rem 0.85rem',
+              fontSize: '0.85rem',
+              whiteSpace: 'nowrap',
               background: (!myOrders || myOrders.length === 0) ? 'rgba(148, 163, 184, 0.2)' : (completedReceipt?.isPaid ? 'linear-gradient(135deg, #10b981 0%, #047857 100%)' : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'),
               boxShadow: (!myOrders || myOrders.length === 0) ? 'none' : (completedReceipt?.isPaid ? '0 4px 15px rgba(16, 185, 129, 0.3)' : '0 4px 15px rgba(245, 158, 11, 0.3)'),
               opacity: (!myOrders || myOrders.length === 0) ? 0.7 : 1
             }}
           >
-            {completedReceipt?.isPaid ? <CheckCircle2 size={18} /> : <CreditCard size={18} />}
-            {completedReceipt?.isPaid ? 'View Paid Receipt' : 'Pay Bill & Review'}
+            {completedReceipt?.isPaid ? <CheckCircle2 size={16} /> : <CreditCard size={16} />}
+            {completedReceipt?.isPaid ? 'Paid Receipt' : 'Pay Bill'}
           </button>
 
-          <button onClick={() => setIsAssistanceOpen(true)} className="btn-secondary" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', borderColor: 'rgba(245, 158, 11, 0.3)' }}>
-            <Bell size={18} /> Call Waiter
+          <button onClick={() => setIsAssistanceOpen(true)} className="btn-secondary" style={{ flex: '1 1 auto', justifyContent: 'center', padding: '0.65rem 0.85rem', fontSize: '0.85rem', whiteSpace: 'nowrap', background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', borderColor: 'rgba(245, 158, 11, 0.3)' }}>
+            <Bell size={16} /> Call Waiter
           </button>
         </div>
       </div>
@@ -1027,7 +1032,8 @@ export default function CustomerPortal() {
                   disabled={isSendingAssistance}
                   className="btn-primary"
                   style={{
-                    justify: 'center',
+                    width: '100%',
+                    justifyContent: 'center',
                     marginTop: '0.5rem',
                     opacity: isSendingAssistance ? 0.6 : 1,
                     cursor: isSendingAssistance ? 'not-allowed' : 'pointer',
