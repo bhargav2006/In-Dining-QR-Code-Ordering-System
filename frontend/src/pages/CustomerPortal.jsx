@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Search, ShoppingBag, Plus, Minus, Bell, CheckCircle2, Clock, Utensils, X, Flame, AlertCircle, CreditCard, Star, PhoneCall, Printer, DollarSign, QrCode, Lock, RefreshCw } from 'lucide-react';
 import { customerApi } from '../services/api';
+import { getDishImage, handleImageError } from '../utils/imageUtils';
 
 export default function CustomerPortal() {
   const { tableNumber } = useParams();
@@ -729,7 +730,12 @@ export default function CustomerPortal() {
           filteredDishes.map(dish => (
             <div key={dish.id} className="glass-panel" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', transition: 'all 0.2s ease' }}>
               <div style={{ height: '180px', width: '100%', position: 'relative', overflow: 'hidden' }}>
-                <img src={dish.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80'} alt={dish.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img
+                  src={getDishImage(dish)}
+                  alt={dish.name}
+                  onError={(e) => handleImageError(e, dish.category?.name)}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
                 
                 {/* Veg / Non-Veg Badge */}
                 <span style={{
