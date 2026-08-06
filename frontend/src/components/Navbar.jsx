@@ -32,21 +32,23 @@ export default function Navbar({ onOpenLogin, user, onLogout }) {
         {/* Brand Logo */}
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', textDecoration: 'none' }}>
           <div style={{
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            background: 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
             padding: '0.5rem',
             borderRadius: '10px',
             display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             color: '#fff',
             boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)'
           }}>
-            <Utensils size={24} />
+            <QrCode size={22} />
           </div>
           <div>
-            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>
-              Gourmet<span style={{ color: '#10b981' }}>QR</span>
+            <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              In-Dining <span style={{ color: '#10b981' }}>QR</span>
             </span>
-            <span style={{ display: 'block', fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-              SMART DINING SYSTEM
+            <span style={{ display: 'block', fontSize: '0.62rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.05em' }}>
+              ORDERING SYSTEM
             </span>
           </div>
         </Link>
