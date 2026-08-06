@@ -38,6 +38,9 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Environment & Secret Files (Keep .env.example)
+.env
+*.env
+backend/.env
 frontend/.env.local
 frontend/.env.development.local
 frontend/.env.test.local
