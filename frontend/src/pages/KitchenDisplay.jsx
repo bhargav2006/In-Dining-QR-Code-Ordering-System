@@ -5,6 +5,7 @@ import { kitchenApi } from '../services/api';
 export default function KitchenDisplay() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   const fetchKitchenOrders = async () => {
     try {
@@ -12,6 +13,8 @@ export default function KitchenDisplay() {
       setOrders(data);
     } catch (err) {
       console.error('Error fetching kitchen orders:', err);
+    } finally {
+      setInitialLoading(false);
     }
   };
 

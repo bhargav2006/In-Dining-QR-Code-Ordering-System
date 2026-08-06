@@ -194,6 +194,42 @@ button {
   animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
+/* Loading Skeleton Shimmer & Spinner Animations */
+@keyframes skeletonShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.03) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.8s infinite ease-in-out;
+}
+
+@keyframes spinGlow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.spinner-glow {
+  border: 3px solid rgba(16, 185, 129, 0.2);
+  border-top: 3px solid #10b981;
+  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  animation: spinGlow 0.9s linear infinite;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+}
+
+.spinner-sm {
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top: 2px solid #ffffff;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spinGlow 0.8s linear infinite;
+}
+
 /* Print thermal receipt styles */
 @media print {
   body * {

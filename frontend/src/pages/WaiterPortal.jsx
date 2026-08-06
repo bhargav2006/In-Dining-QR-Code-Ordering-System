@@ -7,6 +7,7 @@ export default function WaiterPortal() {
   const [assistanceList, setAssistanceList] = useState([]);
   const [readyOrders, setReadyOrders] = useState([]);
   const [selectedTableForCheckout, setSelectedTableForCheckout] = useState(null);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   const loadData = async () => {
     try {
@@ -20,6 +21,8 @@ export default function WaiterPortal() {
       setReadyOrders(readyData);
     } catch (err) {
       console.error('Error loading waiter portal data:', err);
+    } finally {
+      setInitialLoading(false);
     }
   };
 

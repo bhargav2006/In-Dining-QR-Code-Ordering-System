@@ -53,10 +53,13 @@ export default function CustomerPortal() {
   const [cashRequested, setCashRequested] = useState(false);
   const [completedReceipt, setCompletedReceipt] = useState(null);
   const [loadingPayment, setLoadingPayment] = useState(false);
+  const [isLoadingInitial, setIsLoadingInitial] = useState(true);
+  const [isConnecting, setIsConnecting] = useState(false);
 
   // Load session & menu data
   useEffect(() => {
     async function init() {
+      setIsLoadingInitial(true);
       // Check sessionStorage first, then fallback to persistent localStorage for this device & table
       let stored = sessionStorage.getItem('currentSession') || localStorage.getItem(`customer_session_tbl_${tNum}`);
       let sessData = stored ? JSON.parse(stored) : null;
@@ -107,6 +110,8 @@ export default function CustomerPortal() {
         }
       } catch (e) {
         console.error('Session init error:', e);
+      } finally {
+        setIsLoadingInitial(false);
       }
     }
     init();
@@ -129,6 +134,7 @@ export default function CustomerPortal() {
   const handleConnectSession = async (customToken = null) => {
     const tokenToUse = typeof customToken === 'string' ? customToken : manualSessionToken;
     if (!tokenToUse) return;
+    setIsConnecting(true);
     try {
       const resultSess = await customerApi.startSession(tNum, `QR-TBL-${tNum}-TOKEN`, tokenToUse.trim());
       if (resultSess?.isOccupiedLocked) {
@@ -147,6 +153,8 @@ export default function CustomerPortal() {
       window.location.reload();
     } catch (e) {
       alert('Error connecting to session: ' + e.message);
+    } finally {
+      setIsConnecting(false);
     }
   };
 
@@ -327,6 +335,59 @@ export default function CustomerPortal() {
       setLoadingPayment(false);
     }
   };
+
+  if (isLoadingInitial) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2rem',
+        textAlign: 'center',
+        background: 'radial-gradient(circle at center, rgba(16, 185, 129, 0.1) 0%, rgba(15, 23, 42, 1) 70%)'
+      }}>
+        <div className="glass-panel animate-pop-in" style={{
+          padding: '3rem 2.5rem',
+          maxWidth: '440px',
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '1.5rem',
+          border: '1px solid var(--border-glass)',
+          boxShadow: '0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(16, 185, 129, 0.15)'
+        }}>
+          {/* Glowing Animated Icon & Ring */}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="spinner-glow" style={{ width: '70px', height: '70px', borderWidth: '4px' }} />
+            <Utensils size={28} style={{ position: 'absolute', color: '#10b981' }} />
+          </div>
+
+          <div>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', marginBottom: '0.5rem' }}>
+              Welcome to Table #{tNum}
+            </h2>
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              Connecting to Kitchen Gateway & Preparing your In-Dining Experience...
+            </p>
+          </div>
+
+          {/* Skeleton Shimmer Bar */}
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '0.5rem' }}>
+            <div className="skeleton-shimmer" style={{ height: '8px', borderRadius: '4px', width: '100%' }} />
+            <div className="skeleton-shimmer" style={{ height: '8px', borderRadius: '4px', width: '70%', margin: '0 auto' }} />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: '#38bdf8', fontWeight: 600, background: 'rgba(56, 189, 248, 0.1)', padding: '0.4rem 0.8rem', borderRadius: '9999px' }}>
+            <span className="status-pulse" style={{ width: '6px', height: '6px', background: '#38bdf8' }} />
+            Live In-Dining Cloud Gateway Connected
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isOccupiedLocked) {
     return (
@@ -649,59 +710,76 @@ export default function CustomerPortal() {
 
       {/* Menu Dish Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
-        {filteredDishes.map(dish => (
-          <div key={dish.id} className="glass-panel" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', transition: 'all 0.2s ease' }}>
-            <div style={{ height: '180px', width: '100%', position: 'relative', overflow: 'hidden' }}>
-              <img src={dish.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80'} alt={dish.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              
-              {/* Veg / Non-Veg Badge */}
-              <span style={{
-                position: 'absolute',
-                top: '0.75rem',
-                left: '0.75rem',
-                background: 'rgba(15, 23, 42, 0.8)',
-                backdropFilter: 'blur(8px)',
-                border: checkIsVeg(dish) ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid rgba(239, 68, 68, 0.5)',
-                padding: '0.25rem 0.55rem',
-                borderRadius: '8px',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                color: checkIsVeg(dish) ? '#34d399' : '#f87171',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem'
-              }}>
+        {dishes.length === 0 ? (
+          [1, 2, 3, 4, 5, 6].map(n => (
+            <div key={n} className="glass-panel" style={{ height: '320px', borderRadius: '16px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              <div className="skeleton-shimmer" style={{ height: '180px', width: '100%' }} />
+              <div style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.8rem', flex: 1 }}>
+                <div className="skeleton-shimmer" style={{ height: '20px', width: '65%', borderRadius: '6px' }} />
+                <div className="skeleton-shimmer" style={{ height: '14px', width: '90%', borderRadius: '4px' }} />
+                <div className="skeleton-shimmer" style={{ height: '14px', width: '40%', borderRadius: '4px' }} />
+                <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div className="skeleton-shimmer" style={{ height: '24px', width: '30%', borderRadius: '6px' }} />
+                  <div className="skeleton-shimmer" style={{ height: '36px', width: '45%', borderRadius: '10px' }} />
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          filteredDishes.map(dish => (
+            <div key={dish.id} className="glass-panel" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', transition: 'all 0.2s ease' }}>
+              <div style={{ height: '180px', width: '100%', position: 'relative', overflow: 'hidden' }}>
+                <img src={dish.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80'} alt={dish.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                
+                {/* Veg / Non-Veg Badge */}
                 <span style={{
-                  width: '10px',
-                  height: '10px',
-                  border: checkIsVeg(dish) ? '1.5px solid #10b981' : '1.5px solid #ef4444',
-                  padding: '1px',
-                  display: 'inline-flex',
+                  position: 'absolute',
+                  top: '0.75rem',
+                  left: '0.75rem',
+                  background: 'rgba(15, 23, 42, 0.8)',
+                  backdropFilter: 'blur(8px)',
+                  border: checkIsVeg(dish) ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid rgba(239, 68, 68, 0.5)',
+                  padding: '0.25rem 0.55rem',
+                  borderRadius: '8px',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  color: checkIsVeg(dish) ? '#34d399' : '#f87171',
+                  display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '2px'
+                  gap: '0.35rem'
                 }}>
-                  <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: checkIsVeg(dish) ? '#10b981' : '#ef4444' }} />
+                  <span style={{
+                    width: '10px',
+                    height: '10px',
+                    border: checkIsVeg(dish) ? '1.5px solid #10b981' : '1.5px solid #ef4444',
+                    padding: '1px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '2px'
+                  }}>
+                    <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: checkIsVeg(dish) ? '#10b981' : '#ef4444' }} />
+                  </span>
+                  {checkIsVeg(dish) ? 'VEG' : 'NON-VEG'}
                 </span>
-                {checkIsVeg(dish) ? 'VEG' : 'NON-VEG'}
-              </span>
 
-              <span className="badge badge-available" style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', backdropFilter: 'blur(8px)' }}>{dish.category?.name || 'Gourmet'}</span>
-            </div>
-
-            <div style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
-              <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff', marginBottom: '0.4rem' }}>{dish.name}</h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.4, marginBottom: '1rem' }}>{dish.description}</p>
+                <span className="badge badge-available" style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', backdropFilter: 'blur(8px)' }}>{dish.category?.name || 'Gourmet'}</span>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.5rem' }}>
-                <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#10b981' }}>${dish.price.toFixed(2)}</span>
-                <button onClick={() => openCustomization(dish)} className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}><Plus size={16} /> Add to Order</button>
+              <div style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff', marginBottom: '0.4rem' }}>{dish.name}</h3>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.4, marginBottom: '1rem' }}>{dish.description}</p>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.5rem' }}>
+                  <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#10b981' }}>${dish.price.toFixed(2)}</span>
+                  <button onClick={() => openCustomization(dish)} className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}><Plus size={16} /> Add to Order</button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* Floating Cart Trigger Bar */}
@@ -774,15 +852,19 @@ export default function CustomerPortal() {
                 className="btn-primary"
                 style={{
                   width: '100%',
-                  justify: 'center',
+                  justifyContent: 'center',
                   padding: '1rem',
                   marginTop: '1rem',
-                  opacity: isPlacingOrder ? 0.6 : 1,
+                  opacity: isPlacingOrder ? 0.7 : 1,
                   cursor: isPlacingOrder ? 'not-allowed' : 'pointer',
                   pointerEvents: isPlacingOrder ? 'none' : 'auto'
                 }}
               >
-                {isPlacingOrder ? 'Sending Order to Kitchen...' : 'Send Order to Kitchen'}
+                {isPlacingOrder ? (
+                  <>
+                    <span className="spinner-sm" /> Sending Order to Kitchen...
+                  </>
+                ) : 'Send Order to Kitchen'}
               </button>
             </div>
           </div>
@@ -853,8 +935,12 @@ export default function CustomerPortal() {
                   </div>
                 </div>
 
-                <button onClick={handleProcessPayment} disabled={loadingPayment} className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '1rem', fontSize: '1rem' }}>
-                  {loadingPayment ? 'Processing...' : (paymentMethod === 'CASH' ? '💰 Request Waiter for Cash Collection' : '💳 Pay & Generate Digital Receipt')}
+                <button onClick={handleProcessPayment} disabled={loadingPayment} className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '1rem', fontSize: '1rem', opacity: loadingPayment ? 0.7 : 1 }}>
+                  {loadingPayment ? (
+                    <>
+                      <span className="spinner-sm" /> Processing Digital Invoice & Receipt...
+                    </>
+                  ) : (paymentMethod === 'CASH' ? '💰 Request Waiter for Cash Collection' : '💳 Pay & Generate Digital Receipt')}
                 </button>
               </div>
             ) : (
@@ -1035,12 +1121,16 @@ export default function CustomerPortal() {
                     width: '100%',
                     justifyContent: 'center',
                     marginTop: '0.5rem',
-                    opacity: isSendingAssistance ? 0.6 : 1,
+                    opacity: isSendingAssistance ? 0.7 : 1,
                     cursor: isSendingAssistance ? 'not-allowed' : 'pointer',
                     pointerEvents: isSendingAssistance ? 'none' : 'auto'
                   }}
                 >
-                  {isSendingAssistance ? 'Sending Alert...' : 'Send Alert to Waiters'}
+                  {isSendingAssistance ? (
+                    <>
+                      <span className="spinner-sm" /> Alerting Waiters...
+                    </>
+                  ) : 'Send Alert to Waiters'}
                 </button>
               </div>
             )}
