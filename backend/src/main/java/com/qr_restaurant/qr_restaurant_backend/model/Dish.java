@@ -39,6 +39,8 @@ public class Dish {
     @Column(nullable = false)
     private Boolean isAvailable;
 
+    private Boolean isVeg;
+
     private Integer preparationTimeMinutes;
 
     @Column(columnDefinition = "TEXT")
@@ -56,6 +58,13 @@ public class Dish {
         }
         if (preparationTimeMinutes == null) {
             preparationTimeMinutes = 15;
+        }
+        if (isVeg == null) {
+            String lower = (name != null) ? name.toLowerCase() : "";
+            boolean nonVeg = lower.contains("chicken") || lower.contains("prawn") || lower.contains("salmon") ||
+                             lower.contains("burger") || lower.contains("steak") || lower.contains("beef") ||
+                             lower.contains("meat") || lower.contains("fish") || lower.contains("pork") || lower.contains("bacon");
+            isVeg = !nonVeg;
         }
     }
 

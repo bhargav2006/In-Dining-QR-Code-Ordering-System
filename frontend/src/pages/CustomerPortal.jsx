@@ -16,6 +16,7 @@ export default function CustomerPortal() {
   const [dishes, setDishes] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [dietaryFilter, setDietaryFilter] = useState('ALL'); // 'ALL', 'VEG', 'NON_VEG'
   
   // Cart state
   const [cart, setCart] = useState([]);
@@ -111,6 +112,20 @@ export default function CustomerPortal() {
     init();
   }, [tNum]);
 
+  // Expose DevTools Console command to view active Session Token cleanly
+  useEffect(() => {
+    if (session?.sessionToken) {
+      window.getSessionToken = () => {
+        console.log('%c🔑 ACTIVE TABLE SESSION DETAILS', 'color: #10b981; font-weight: bold; font-size: 14px;');
+        console.log(`Table Number : #${tNum}`);
+        console.log(`Session Token: ${session.sessionToken}`);
+        console.log(`Status       : ACTIVE`);
+        return session.sessionToken;
+      };
+      window.logToken = window.getSessionToken;
+    }
+  }, [session, tNum]);
+
   const handleConnectSession = async (customToken = null) => {
     const tokenToUse = typeof customToken === 'string' ? customToken : manualSessionToken;
     if (!tokenToUse) return;
@@ -179,10 +194,23 @@ export default function CustomerPortal() {
     }
   };
 
+  const checkIsVeg = (dish) => {
+    if (typeof dish.isVeg === 'boolean') return dish.isVeg;
+    const lower = (dish.name + ' ' + (dish.description || '')).toLowerCase();
+    const nonVegKeywords = ['chicken', 'prawn', 'salmon', 'burger', 'steak', 'beef', 'meat', 'fish', 'pork', 'bacon', 'lamb', 'mutton', 'seafood'];
+    return !nonVegKeywords.some(kw => lower.includes(kw));
+  };
+
   const filteredDishes = dishes.filter(dish => {
     const matchesCat = !selectedCategory || dish.category?.id === selectedCategory;
     const matchesSearch = !searchQuery || dish.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCat && matchesSearch;
+    
+    const isVeg = checkIsVeg(dish);
+    let matchesDiet = true;
+    if (dietaryFilter === 'VEG') matchesDiet = isVeg;
+    if (dietaryFilter === 'NON_VEG') matchesDiet = !isVeg;
+
+    return matchesCat && matchesSearch && matchesDiet;
   });
 
   const openCustomization = (dish) => {
@@ -412,9 +440,12 @@ export default function CustomerPortal() {
             T-{tNum}
           </div>
           <div>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#fff' }}>Table #{tNum} Session</h2>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              Table #{tNum}
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px #10b981', display: 'inline-block' }} />
+            </h2>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Token: {session?.sessionToken || 'Initializing...'}
+              Gourmet QR In-Dining Experience
             </span>
           </div>
         </div>
@@ -461,6 +492,131 @@ export default function CustomerPortal() {
         </div>
       </div>
 
+      {/* Dietary Pill Slider (All, Veg, Non-Veg) */}
+      <div style={{
+        position: 'relative',
+        display: 'flex',
+        background: 'rgba(15, 23, 42, 0.7)',
+        padding: '0.35rem',
+        borderRadius: '16px',
+        border: '1px solid var(--border-glass)',
+        backdropFilter: 'blur(12px)',
+        width: '100%',
+        maxWidth: '420px',
+        margin: '0 auto 1.5rem auto'
+      }}>
+        {/* Animated Sliding Indicator */}
+        <div style={{
+          position: 'absolute',
+          top: '0.35rem',
+          bottom: '0.35rem',
+          left: dietaryFilter === 'ALL' ? '0.35rem' : (dietaryFilter === 'VEG' ? 'calc(33.33% + 0.15rem)' : 'calc(66.66% - 0.15rem)'),
+          width: 'calc(33.33% - 0.35rem)',
+          borderRadius: '12px',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          background: dietaryFilter === 'ALL'
+            ? 'linear-gradient(135deg, #10b981 0%, #38bdf8 100%)'
+            : (dietaryFilter === 'VEG' ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)' : 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)'),
+          boxShadow: dietaryFilter === 'ALL'
+            ? '0 4px 15px rgba(56, 189, 248, 0.35)'
+            : (dietaryFilter === 'VEG' ? '0 4px 15px rgba(16, 185, 129, 0.4)' : '0 4px 15px rgba(239, 68, 68, 0.4)'),
+          zIndex: 1
+        }} />
+
+        <button
+          onClick={() => setDietaryFilter('ALL')}
+          style={{
+            flex: 1,
+            padding: '0.6rem 0.5rem',
+            borderRadius: '12px',
+            border: 'none',
+            background: 'transparent',
+            color: dietaryFilter === 'ALL' ? '#fff' : 'var(--text-muted)',
+            fontWeight: dietaryFilter === 'ALL' ? 800 : 600,
+            fontSize: '0.85rem',
+            cursor: 'pointer',
+            zIndex: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.4rem',
+            transition: 'color 0.2s ease'
+          }}
+        >
+          <span>✨</span> All Menu
+        </button>
+
+        <button
+          onClick={() => setDietaryFilter('VEG')}
+          style={{
+            flex: 1,
+            padding: '0.6rem 0.5rem',
+            borderRadius: '12px',
+            border: 'none',
+            background: 'transparent',
+            color: dietaryFilter === 'VEG' ? '#fff' : 'var(--text-muted)',
+            fontWeight: dietaryFilter === 'VEG' ? 800 : 600,
+            fontSize: '0.85rem',
+            cursor: 'pointer',
+            zIndex: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.4rem',
+            transition: 'color 0.2s ease'
+          }}
+        >
+          <span style={{
+            width: '13px',
+            height: '13px',
+            border: dietaryFilter === 'VEG' ? '1.5px solid #fff' : '1.5px solid #10b981',
+            padding: '1.5px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '3px'
+          }}>
+            <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: dietaryFilter === 'VEG' ? '#fff' : '#10b981' }} />
+          </span>
+          Pure Veg
+        </button>
+
+        <button
+          onClick={() => setDietaryFilter('NON_VEG')}
+          style={{
+            flex: 1,
+            padding: '0.6rem 0.5rem',
+            borderRadius: '12px',
+            border: 'none',
+            background: 'transparent',
+            color: dietaryFilter === 'NON_VEG' ? '#fff' : 'var(--text-muted)',
+            fontWeight: dietaryFilter === 'NON_VEG' ? 800 : 600,
+            fontSize: '0.85rem',
+            cursor: 'pointer',
+            zIndex: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.4rem',
+            transition: 'color 0.2s ease'
+          }}
+        >
+          <span style={{
+            width: '13px',
+            height: '13px',
+            border: dietaryFilter === 'NON_VEG' ? '1.5px solid #fff' : '1.5px solid #ef4444',
+            padding: '1.5px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '3px'
+          }}>
+            <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: dietaryFilter === 'NON_VEG' ? '#fff' : '#ef4444' }} />
+          </span>
+          Non-Veg
+        </button>
+      </div>
+
       {/* Category Pills & Search */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
         <div style={{ position: 'relative', width: '100%' }}>
@@ -476,7 +632,7 @@ export default function CustomerPortal() {
 
         <div style={{ display: 'flex', gap: '0.6rem', overflowX: 'auto', paddingBottom: '0.4rem' }}>
           <button onClick={() => setSelectedCategory(null)} style={{ padding: '0.6rem 1.2rem', borderRadius: '9999px', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap', background: !selectedCategory ? '#10b981' : 'rgba(255, 255, 255, 0.05)', color: !selectedCategory ? '#fff' : 'var(--text-muted)', border: !selectedCategory ? '1px solid #10b981' : '1px solid var(--border-glass)' }}>
-            All Menu
+            All Categories
           </button>
           {categories.map(cat => (
             <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} style={{ padding: '0.6rem 1.2rem', borderRadius: '9999px', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap', background: selectedCategory === cat.id ? '#10b981' : 'rgba(255, 255, 255, 0.05)', color: selectedCategory === cat.id ? '#fff' : 'var(--text-muted)', border: selectedCategory === cat.id ? '1px solid #10b981' : '1px solid var(--border-glass)' }}>
@@ -492,6 +648,39 @@ export default function CustomerPortal() {
           <div key={dish.id} className="glass-panel" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', transition: 'all 0.2s ease' }}>
             <div style={{ height: '180px', width: '100%', position: 'relative', overflow: 'hidden' }}>
               <img src={dish.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80'} alt={dish.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              
+              {/* Veg / Non-Veg Badge */}
+              <span style={{
+                position: 'absolute',
+                top: '0.75rem',
+                left: '0.75rem',
+                background: 'rgba(15, 23, 42, 0.8)',
+                backdropFilter: 'blur(8px)',
+                border: checkIsVeg(dish) ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid rgba(239, 68, 68, 0.5)',
+                padding: '0.25rem 0.55rem',
+                borderRadius: '8px',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                color: checkIsVeg(dish) ? '#34d399' : '#f87171',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}>
+                <span style={{
+                  width: '10px',
+                  height: '10px',
+                  border: checkIsVeg(dish) ? '1.5px solid #10b981' : '1.5px solid #ef4444',
+                  padding: '1px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '2px'
+                }}>
+                  <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: checkIsVeg(dish) ? '#10b981' : '#ef4444' }} />
+                </span>
+                {checkIsVeg(dish) ? 'VEG' : 'NON-VEG'}
+              </span>
+
               <span className="badge badge-available" style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', backdropFilter: 'blur(8px)' }}>{dish.category?.name || 'Gourmet'}</span>
             </div>
 
