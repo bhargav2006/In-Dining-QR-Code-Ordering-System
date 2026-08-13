@@ -1,6 +1,6 @@
 # 🍽️ In-Dining QR Code Ordering System
 
-A full-stack, real-time **In-Dining QR Code Ordering & Restaurant Management System** built with **Java 21, Spring Boot 3, MySQL Cloud (Aiven), React 18, Vite**, and a custom glassmorphism design system.
+A full-stack, real-time **In-Dining QR Code Ordering & Restaurant Management System** built with **Java 21, Spring Boot 3, MySQL Cloud (Layerbase), React 18, Vite**, and a custom glassmorphism design system.
 
 ---
 
@@ -46,12 +46,12 @@ The system connects restaurant diners, waitstaff, kitchen chefs, and restaurant 
                                            |  (REST API / CORS)
 [ Staff / Waiter / Kitchen ]  <--->  [ Spring Boot 3 REST API ]
                                            |  (JPA / Hibernate)
-                                     [ Aiven MySQL Cloud DB ]
+                                     [ Layerbase MySQL Cloud DB ]
 ```
 
 - **Backend Framework**: Java 21, Spring Boot 3, Spring Data JPA, Hibernate.
 - **Frontend Framework**: React 18, Vite, Lucide Icons, Vanilla CSS (Glassmorphism design system).
-- **Database**: Aiven Cloud MySQL (Production) / H2 In-Memory (Test fallback).
+- **Database**: Layerbase Cloud MySQL (Production) / H2 In-Memory (Test fallback).
 - **Automated Testing**: JUnit 5, Mockito, Spring Boot MockMvc.
 - **Deployment**: Vercel (Frontend Single Page Application) & Render (Spring Boot REST API).
 

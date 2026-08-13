@@ -32,13 +32,14 @@ class HealthCheckControllerTest {
     }
 
     @Test
-    @DisplayName("Integration Test: GET /api/health returns JSON health diagnostics")
+    @DisplayName("Integration Test: GET /api/health returns JSON health status")
     void testCheckHealth_ReturnsJson() throws Exception {
         mockMvc.perform(get("/api/health")
                         .header("Accept", MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("UP"))
-                .andExpect(jsonPath("$.service").value("QR Restaurant Backend API"));
+                .andExpect(jsonPath("$.status").value("OK"))
+                .andExpect(jsonPath("$.message").value("Your API is running"))
+                .andExpect(jsonPath("$.timestamp").exists());
     }
 
     @Test

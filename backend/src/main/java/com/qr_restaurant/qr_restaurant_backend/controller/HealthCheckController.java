@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -20,7 +21,16 @@ public class HealthCheckController {
 
     private final JdbcTemplate jdbcTemplate;
 
-    @GetMapping(value = {"/", "/health", "/api/health"}, produces = {MediaType.TEXT_HTML_VALUE, MediaType.APPLICATION_JSON_VALUE})
+    @GetMapping("/api/health")
+    public ResponseEntity<Map<String, Object>> healthCheck() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "OK");
+        response.put("message", "Your API is running");
+        response.put("timestamp", Instant.now().toString());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping(value = {"/", "/health"}, produces = {MediaType.TEXT_HTML_VALUE, MediaType.APPLICATION_JSON_VALUE})
     public ResponseEntity<?> checkHealth(@RequestHeader(value = HttpHeaders.ACCEPT, required = false) String acceptHeader) {
         boolean isHtmlRequest = acceptHeader != null && acceptHeader.contains("text/html");
 
@@ -30,7 +40,7 @@ public class HealthCheckController {
         health.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
 
         String dbStatus = "CONNECTED 🟢";
-        String dbEngine = "MySQL (Aiven Cloud)";
+        String dbEngine = "MySQL (Layerbase Cloud)";
         boolean isConnected = true;
 
         try {
