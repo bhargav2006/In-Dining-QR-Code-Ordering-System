@@ -12,5 +12,7 @@ import lombok.NoArgsConstructor;
 public class TableScanRequestDto {
     private String qrToken;
     private Integer tableNumber;
+    private Long restaurantId;
+    private String restaurantSlug;
     private String sessionToken;
 }

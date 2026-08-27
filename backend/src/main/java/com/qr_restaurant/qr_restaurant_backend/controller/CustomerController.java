@@ -26,15 +26,19 @@ public class CustomerController {
     }
 
     @GetMapping("/categories")
-    public ResponseEntity<List<Category>> getCategories() {
-        return ResponseEntity.ok(customerService.getActiveCategories());
+    public ResponseEntity<List<Category>> getCategories(
+            @RequestParam(required = false) Long restaurantId,
+            @RequestParam(required = false) String restaurantSlug) {
+        return ResponseEntity.ok(customerService.getActiveCategories(restaurantId, restaurantSlug));
     }
 
     @GetMapping("/menu")
     public ResponseEntity<List<Dish>> getMenu(
+            @RequestParam(required = false) Long restaurantId,
+            @RequestParam(required = false) String restaurantSlug,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String search) {
-        return ResponseEntity.ok(customerService.getAvailableDishes(categoryId, search));
+        return ResponseEntity.ok(customerService.getAvailableDishes(restaurantId, restaurantSlug, categoryId, search));
     }
 
     @PostMapping("/orders")

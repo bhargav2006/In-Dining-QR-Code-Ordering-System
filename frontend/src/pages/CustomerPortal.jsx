@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Search, ShoppingBag, Plus, Minus, Bell, CheckCircle2, Clock, Utensils, X, Flame, AlertCircle, CreditCard, Star, PhoneCall, Printer, DollarSign, QrCode, Lock, RefreshCw } from 'lucide-react';
+import { Search, ShoppingBag, Plus, Minus, Bell, CheckCircle2, Clock, Utensils, X, Flame, AlertCircle, CreditCard, Star, PhoneCall, Printer, DollarSign, QrCode, Lock, RefreshCw, Store } from 'lucide-react';
 import { customerApi } from '../services/api';
 import { getDishImage, handleImageError } from '../utils/imageUtils';
 
 export default function CustomerPortal() {
-  const { tableNumber } = useParams();
+  const { restaurantSlug, tableNumber } = useParams();
   const navigate = useNavigate();
+  const searchParams = new URLSearchParams(window.location.search);
+  const restaurantId = searchParams.get('restaurantId');
   const tNum = parseInt(tableNumber || '1', 10);
 
   const [session, setSession] = useState(null);
@@ -71,7 +73,7 @@ export default function CustomerPortal() {
       }
 
       try {
-        const resultSess = await customerApi.startSession(tNum, `QR-TBL-${tNum}-TOKEN`, activeToken);
+        const resultSess = await customerApi.startSession(tNum, null, activeToken, restaurantId, restaurantSlug);
 
         if (resultSess?.isOccupiedLocked) {
           // Backend rejected token as invalid/expired. Purge stale tokens from device storage!
@@ -92,22 +94,19 @@ export default function CustomerPortal() {
           localStorage.setItem(`customer_token_tbl_${tNum}`, resultSess.sessionToken);
         }
 
-        const catData = await customerApi.getCategories();
-        setCategories(catData);
+        const targetRestId = resultSess?.restaurantId || restaurantId;
+        const [catData, dishData, orders, rec] = await Promise.all([
+          customerApi.getCategories(targetRestId, restaurantSlug).catch(() => []),
+          customerApi.getMenu(null, '', targetRestId, restaurantSlug).catch(() => []),
+          resultSess?.sessionToken ? customerApi.getSessionOrders(resultSess.sessionToken).catch(() => []) : Promise.resolve([]),
+          resultSess?.sessionToken ? customerApi.getBillReceipt(resultSess.sessionToken).catch(() => null) : Promise.resolve(null),
+        ]);
 
-        const dishData = await customerApi.getMenu(null, '');
-        setDishes(dishData);
-
-        if (resultSess?.sessionToken) {
-          const orders = await customerApi.getSessionOrders(resultSess.sessionToken);
-          setMyOrders(orders);
-
-          try {
-            const rec = await customerApi.getBillReceipt(resultSess.sessionToken);
-            if (rec && rec.isPaid) {
-              setCompletedReceipt(rec);
-            }
-          } catch (e) {}
+        setCategories(catData || []);
+        setDishes(dishData || []);
+        setMyOrders(orders || []);
+        if (rec && rec.isPaid) {
+          setCompletedReceipt(rec);
         }
       } catch (e) {
         console.error('Session init error:', e);
@@ -506,8 +505,8 @@ export default function CustomerPortal() {
               Table #{tNum}
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px #10b981', display: 'inline-block' }} />
             </h2>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Gourmet QR In-Dining Experience
+            <span style={{ fontSize: '0.75rem', color: '#fb923c', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <Store size={12} /> {session?.restaurantName || 'Gourmet In-Dining Experience'}
             </span>
           </div>
         </div>

@@ -1,6 +1,7 @@
 package com.qr_restaurant.qr_restaurant_backend.controller;
 
 import com.qr_restaurant.qr_restaurant_backend.dto.AssistanceRequestDto;
+import com.qr_restaurant.qr_restaurant_backend.dto.OrderResponseDto;
 import com.qr_restaurant.qr_restaurant_backend.model.RestaurantTable;
 import com.qr_restaurant.qr_restaurant_backend.model.TableSession;
 import com.qr_restaurant.qr_restaurant_backend.model.enums.TableStatus;
@@ -19,8 +20,8 @@ public class WaiterController {
     private final WaiterService waiterService;
 
     @GetMapping("/tables")
-    public ResponseEntity<List<RestaurantTable>> getAllTables() {
-        return ResponseEntity.ok(waiterService.getAllTables());
+    public ResponseEntity<List<RestaurantTable>> getAllTables(@RequestParam(required = false) Long restaurantId) {
+        return ResponseEntity.ok(waiterService.getAllTables(restaurantId));
     }
 
     @PatchMapping("/tables/{tableId}/status")
@@ -31,8 +32,8 @@ public class WaiterController {
     }
 
     @GetMapping("/assistance")
-    public ResponseEntity<List<AssistanceRequestDto>> getPendingAssistanceRequests() {
-        return ResponseEntity.ok(waiterService.getPendingAssistanceRequests());
+    public ResponseEntity<List<AssistanceRequestDto>> getPendingAssistanceRequests(@RequestParam(required = false) Long restaurantId) {
+        return ResponseEntity.ok(waiterService.getPendingAssistanceRequests(restaurantId));
     }
 
     @PatchMapping("/assistance/{requestId}/resolve")
@@ -41,12 +42,12 @@ public class WaiterController {
     }
 
     @GetMapping("/orders/ready")
-    public ResponseEntity<List<com.qr_restaurant.qr_restaurant_backend.dto.OrderResponseDto>> getReadyToServeOrders() {
-        return ResponseEntity.ok(waiterService.getReadyToServeOrders());
+    public ResponseEntity<List<OrderResponseDto>> getReadyToServeOrders(@RequestParam(required = false) Long restaurantId) {
+        return ResponseEntity.ok(waiterService.getReadyToServeOrders(restaurantId));
     }
 
     @PatchMapping("/orders/{orderId}/serve")
-    public ResponseEntity<com.qr_restaurant.qr_restaurant_backend.dto.OrderResponseDto> markOrderServed(@PathVariable Long orderId) {
+    public ResponseEntity<OrderResponseDto> markOrderServed(@PathVariable Long orderId) {
         return ResponseEntity.ok(waiterService.markOrderServed(orderId));
     }
 

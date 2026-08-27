@@ -18,4 +18,9 @@ public class TableScanResponseDto {
     private String sessionToken;
     private String qrToken;
     private Boolean isOccupiedLocked;
+
+    private Long restaurantId;
+    private String restaurantName;
+    private String restaurantSlug;
+    private String restaurantLogoUrl;
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, DollarSign, ShoppingBag, Table, ToggleLeft, ToggleRight, Plus, Edit, Trash2, QrCode, RefreshCw, X, FolderPlus, ShieldAlert, Lock, Printer, Copy, Check, BarChart2, TrendingUp, Calendar, Eye, Receipt, Search, Filter } from 'lucide-react';
+import { LayoutDashboard, DollarSign, ShoppingBag, Table, ToggleLeft, ToggleRight, Plus, Edit, Trash2, QrCode, RefreshCw, X, FolderPlus, ShieldAlert, Lock, Printer, Copy, Check, BarChart2, TrendingUp, Calendar, Eye, Receipt, Search, Filter, Store } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { managerApi } from '../services/api';
 import { getFrontendUrl } from '../utils/url';
@@ -26,19 +26,19 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
 
   const loadAll = async () => {
     try {
-      const stats = await managerApi.getDashboard();
+      const restId = user?.restaurantId;
+      const [stats, dishList, catList, tblList, ordList] = await Promise.all([
+        managerApi.getDashboard(restId),
+        managerApi.getDishes(restId),
+        managerApi.getCategories(restId),
+        managerApi.getTables(restId),
+        managerApi.getAllOrders(restId),
+      ]);
+
       setAnalytics(stats);
-
-      const dishList = await managerApi.getDishes();
-      setDishes(dishList);
-
-      const catList = await managerApi.getCategories();
-      setCategories(catList);
-
-      const tblList = await managerApi.getTables();
-      setTables(tblList);
-
-      const ordList = await managerApi.getAllOrders();
+      setDishes(dishList || []);
+      setCategories(catList || []);
+      setTables(tblList || []);
       setOrdersList(ordList || []);
     } catch (err) {
       console.error('Error loading manager data:', err);
@@ -55,7 +55,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
   const handleSaveDish = async (e) => {
     e.preventDefault();
     try {
-      await managerApi.saveDish(editingDish);
+      await managerApi.saveDish(editingDish, user?.restaurantId);
       setEditingDish(null);
       loadAll();
     } catch (err) {
@@ -86,7 +86,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
   const handleSaveCategory = async (e) => {
     e.preventDefault();
     try {
-      await managerApi.saveCategory(editingCategory);
+      await managerApi.saveCategory(editingCategory, user?.restaurantId);
       setEditingCategory(null);
       loadAll();
     } catch (err) {
@@ -108,7 +108,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
   const handleSaveTable = async (e) => {
     e.preventDefault();
     try {
-      await managerApi.saveTable(editingTable);
+      await managerApi.saveTable(editingTable, user?.restaurantId);
       setEditingTable(null);
       loadAll();
     } catch (err) {
@@ -787,26 +787,27 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
               marginBottom: '1.5rem'
             }}>
               <QRCodeSVG
-                value={`${getFrontendUrl()}/table/${qrModalTable.tableNumber}`}
+                value={user?.restaurantSlug ? `${getFrontendUrl()}/r/${user.restaurantSlug}/table/${qrModalTable.tableNumber}` : `${getFrontendUrl()}/table/${qrModalTable.tableNumber}`}
                 size={220}
                 level="H"
                 includeMargin={true}
               />
-              <div style={{ color: '#0f172a', fontWeight: 800, fontSize: '1.1rem', marginTop: '0.8rem' }}>
-                GOURMET RESTAURANT
+              <div style={{ color: '#0f172a', fontWeight: 800, fontSize: '1.1rem', marginTop: '0.8rem', textTransform: 'uppercase' }}>
+                {user?.restaurantName || 'GOURMET RESTAURANT'}
               </div>
               <div style={{ color: '#10b981', fontWeight: 700, fontSize: '0.85rem' }}>
                 TABLE #{qrModalTable.tableNumber} • {qrModalTable.capacity} SEATS
               </div>
               <div style={{ color: '#64748b', fontSize: '0.7rem', marginTop: '0.4rem', wordBreak: 'break-all', maxWidth: '240px' }}>
-                {`${getFrontendUrl()}/table/${qrModalTable.tableNumber}`}
+                {user?.restaurantSlug ? `${getFrontendUrl()}/r/${user.restaurantSlug}/table/${qrModalTable.tableNumber}` : `${getFrontendUrl()}/table/${qrModalTable.tableNumber}`}
               </div>
             </div>
 
             <div style={{ display: 'flex', gap: '0.8rem' }}>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(`${getFrontendUrl()}/table/${qrModalTable.tableNumber}`);
+                  const targetUrl = user?.restaurantSlug ? `${getFrontendUrl()}/r/${user.restaurantSlug}/table/${qrModalTable.tableNumber}` : `${getFrontendUrl()}/table/${qrModalTable.tableNumber}`;
+                  navigator.clipboard.writeText(targetUrl);
                   setCopiedLink(true);
                   setTimeout(() => setCopiedLink(false), 2000);
                 }}

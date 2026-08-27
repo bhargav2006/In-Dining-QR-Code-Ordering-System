@@ -1,8 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { ConciergeBell, CheckCircle2, AlertTriangle, CreditCard, RefreshCw, UserCheck, DollarSign, X, Utensils, PhoneCall, ShoppingBag } from 'lucide-react';
+import { ConciergeBell, CheckCircle2, AlertTriangle, CreditCard, RefreshCw, UserCheck, DollarSign, X, Utensils, PhoneCall, ShoppingBag, Store } from 'lucide-react';
 import { waiterApi } from '../services/api';
 
-export default function WaiterPortal() {
+export default function WaiterPortal({ user, onOpenLogin }) {
+  const currentUser = user || (() => {
+    try {
+      const saved = localStorage.getItem('staffUser');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  })();
+
+  const restId = currentUser?.restaurantId;
+
   const [tables, setTables] = useState([]);
   const [assistanceList, setAssistanceList] = useState([]);
   const [readyOrders, setReadyOrders] = useState([]);
@@ -11,14 +22,15 @@ export default function WaiterPortal() {
 
   const loadData = async () => {
     try {
-      const tblData = await waiterApi.getTables();
-      setTables(tblData);
+      const [tblData, astData, readyData] = await Promise.all([
+        waiterApi.getTables(restId),
+        waiterApi.getAssistanceRequests(restId),
+        waiterApi.getReadyOrders(restId),
+      ]);
 
-      const astData = await waiterApi.getAssistanceRequests();
-      setAssistanceList(astData);
-
-      const readyData = await waiterApi.getReadyOrders();
-      setReadyOrders(readyData);
+      setTables(tblData || []);
+      setAssistanceList(astData || []);
+      setReadyOrders(readyData || []);
     } catch (err) {
       console.error('Error loading waiter portal data:', err);
     } finally {
@@ -31,7 +43,7 @@ export default function WaiterPortal() {
     const pollMs = Number(import.meta.env.VITE_POLLING_INTERVAL_MS) || 4000;
     const interval = setInterval(loadData, pollMs);
     return () => clearInterval(interval);
-  }, []);
+  }, [restId]);
 
   const handleResolveAssistance = async (id) => {
     try {
@@ -84,7 +96,7 @@ export default function WaiterPortal() {
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem 1.5rem 6rem 1.5rem' }}>
       
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
           <div style={{
             background: 'rgba(245, 158, 11, 0.15)',
@@ -96,12 +108,37 @@ export default function WaiterPortal() {
             <ConciergeBell size={28} />
           </div>
           <div>
-            <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#fff' }}>Waiter & Staff Operations</h1>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Food pick-up dispatch, cash collection & table map</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#fff', margin: 0 }}>Waiter & Staff Operations</h1>
+              {currentUser?.restaurantName && (
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.3rem 0.75rem',
+                  borderRadius: '9999px',
+                  backgroundColor: 'rgba(249, 115, 22, 0.15)',
+                  border: '1px solid rgba(249, 115, 22, 0.35)',
+                  color: '#fb923c',
+                  fontSize: '0.8rem',
+                  fontWeight: '700'
+                }}>
+                  <Store size={13} /> {currentUser.restaurantName}
+                </span>
+              )}
+            </div>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, marginTop: '0.2rem' }}>
+              Food pick-up dispatch, cash collection & table map
+            </p>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {!currentUser && onOpenLogin && (
+            <button onClick={onOpenLogin} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
+              Login to Switch Restaurant
+            </button>
+          )}
           <span style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
             <PhoneCall size={14} /> Waiter Hotline: +1 (555) 019-WAIT
           </span>
@@ -224,7 +261,9 @@ export default function WaiterPortal() {
       )}
 
       {/* SECTION 3: Dining Floor Layout & Table Map */}
-      <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#fff', marginBottom: '1rem' }}>Dining Floor Layout & Table Map</h2>
+      <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#fff', marginBottom: '1rem' }}>
+        Dining Floor Layout & Table Map {currentUser?.restaurantName ? `(${currentUser.restaurantName})` : ''}
+      </h2>
 
       <div style={{
         display: 'grid',

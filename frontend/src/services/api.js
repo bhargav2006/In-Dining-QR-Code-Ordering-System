@@ -7,7 +7,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000,
+  timeout: 30000,
 });
 
 // Request Interceptor: Attach security Bearer auth token if available
@@ -36,18 +36,18 @@ api.interceptors.response.use(
 );
 
 export const customerApi = {
-  startSession: async (tableNumber, qrToken, sessionToken) => {
-    const res = await api.post('/customer/session/start', { tableNumber, qrToken, sessionToken });
+  startSession: async (tableNumber, qrToken, sessionToken, restaurantId, restaurantSlug) => {
+    const res = await api.post('/customer/session/start', { tableNumber, qrToken, sessionToken, restaurantId, restaurantSlug });
     return res.data;
   },
 
-  getCategories: async () => {
-    const res = await api.get('/customer/categories');
+  getCategories: async (restaurantId, restaurantSlug) => {
+    const res = await api.get('/customer/categories', { params: { restaurantId, restaurantSlug } });
     return res.data;
   },
 
-  getMenu: async (categoryId, search) => {
-    const res = await api.get('/customer/menu', { params: { categoryId, search } });
+  getMenu: async (categoryId, search, restaurantId, restaurantSlug) => {
+    const res = await api.get('/customer/menu', { params: { categoryId, search, restaurantId, restaurantSlug } });
     return res.data;
   },
 
@@ -83,8 +83,8 @@ export const customerApi = {
 };
 
 export const kitchenApi = {
-  getOrders: async () => {
-    const res = await api.get('/kitchen/orders');
+  getOrders: async (restaurantId) => {
+    const res = await api.get('/kitchen/orders', { params: { restaurantId } });
     return res.data;
   },
 
@@ -95,8 +95,8 @@ export const kitchenApi = {
 };
 
 export const waiterApi = {
-  getTables: async () => {
-    const res = await api.get('/waiter/tables');
+  getTables: async (restaurantId) => {
+    const res = await api.get('/waiter/tables', { params: { restaurantId } });
     return res.data;
   },
 
@@ -105,8 +105,8 @@ export const waiterApi = {
     return res.data;
   },
 
-  getAssistanceRequests: async () => {
-    const res = await api.get('/waiter/assistance');
+  getAssistanceRequests: async (restaurantId) => {
+    const res = await api.get('/waiter/assistance', { params: { restaurantId } });
     return res.data;
   },
 
@@ -115,8 +115,8 @@ export const waiterApi = {
     return res.data;
   },
 
-  getReadyOrders: async () => {
-    const res = await api.get('/waiter/orders/ready');
+  getReadyOrders: async (restaurantId) => {
+    const res = await api.get('/waiter/orders/ready', { params: { restaurantId } });
     return res.data;
   },
 
@@ -132,22 +132,22 @@ export const waiterApi = {
 };
 
 export const managerApi = {
-  getDashboard: async () => {
-    const res = await api.get('/manager/analytics/dashboard');
+  getDashboard: async (restaurantId) => {
+    const res = await api.get('/manager/analytics/dashboard', { params: { restaurantId } });
     return res.data;
   },
 
-  getCategories: async () => {
-    const res = await api.get('/manager/categories');
+  getCategories: async (restaurantId) => {
+    const res = await api.get('/manager/categories', { params: { restaurantId } });
     return res.data;
   },
 
-  saveCategory: async (category) => {
+  saveCategory: async (category, restaurantId) => {
     if (category.id) {
       const res = await api.put(`/manager/categories/${category.id}`, category);
       return res.data;
     }
-    const res = await api.post('/manager/categories', category);
+    const res = await api.post('/manager/categories', category, { params: { restaurantId } });
     return res.data;
   },
 
@@ -155,17 +155,17 @@ export const managerApi = {
     await api.delete(`/manager/categories/${id}`);
   },
 
-  getDishes: async () => {
-    const res = await api.get('/manager/dishes');
+  getDishes: async (restaurantId) => {
+    const res = await api.get('/manager/dishes', { params: { restaurantId } });
     return res.data;
   },
 
-  saveDish: async (dish) => {
+  saveDish: async (dish, restaurantId) => {
     if (dish.id) {
       const res = await api.put(`/manager/dishes/${dish.id}`, dish);
       return res.data;
     }
-    const res = await api.post('/manager/dishes', dish);
+    const res = await api.post('/manager/dishes', dish, { params: { restaurantId } });
     return res.data;
   },
 
@@ -178,17 +178,17 @@ export const managerApi = {
     await api.delete(`/manager/dishes/${id}`);
   },
 
-  getTables: async () => {
-    const res = await api.get('/manager/tables');
+  getTables: async (restaurantId) => {
+    const res = await api.get('/manager/tables', { params: { restaurantId } });
     return res.data;
   },
 
-  saveTable: async (table) => {
+  saveTable: async (table, restaurantId) => {
     if (table.id) {
       const res = await api.put(`/manager/tables/${table.id}`, table);
       return res.data;
     }
-    const res = await api.post('/manager/tables', table);
+    const res = await api.post('/manager/tables', table, { params: { restaurantId } });
     return res.data;
   },
 
@@ -201,8 +201,8 @@ export const managerApi = {
     return res.data;
   },
 
-  getAllOrders: async () => {
-    const res = await api.get('/manager/orders');
+  getAllOrders: async (restaurantId) => {
+    const res = await api.get('/manager/orders', { params: { restaurantId } });
     return res.data;
   }
 };
@@ -213,6 +213,19 @@ export const authApi = {
     if (res.data && res.data.token) {
       localStorage.setItem('authToken', res.data.token);
     }
+    return res.data;
+  },
+
+  registerRestaurant: async (data) => {
+    const res = await api.post('/auth/register-restaurant', data);
+    if (res.data && res.data.token) {
+      localStorage.setItem('authToken', res.data.token);
+    }
+    return res.data;
+  },
+
+  getRestaurants: async () => {
+    const res = await api.get('/auth/restaurants');
     return res.data;
   }
 };

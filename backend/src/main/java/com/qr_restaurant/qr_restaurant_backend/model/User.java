@@ -39,6 +39,10 @@ public class User {
 
     private String photoUrl;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "restaurant_id")
+    private Restaurant restaurant;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

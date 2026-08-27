@@ -26,6 +26,10 @@ public class AssistanceRequest {
     @JoinColumn(name = "session_id")
     private TableSession tableSession;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "restaurant_id")
+    private Restaurant restaurant;
+
     @Column(nullable = false)
     private Integer tableNumber;
 

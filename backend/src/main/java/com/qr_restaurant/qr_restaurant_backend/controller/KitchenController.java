@@ -17,8 +17,8 @@ public class KitchenController {
     private final KitchenService kitchenService;
 
     @GetMapping("/orders")
-    public ResponseEntity<List<OrderResponseDto>> getActiveOrders() {
-        return ResponseEntity.ok(kitchenService.getActiveKitchenOrders());
+    public ResponseEntity<List<OrderResponseDto>> getActiveOrders(@RequestParam(required = false) Long restaurantId) {
+        return ResponseEntity.ok(kitchenService.getActiveKitchenOrders(restaurantId));
     }
 
     @PatchMapping("/orders/{orderId}/status")

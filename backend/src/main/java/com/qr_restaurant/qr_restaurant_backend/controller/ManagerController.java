@@ -22,13 +22,13 @@ public class ManagerController {
 
     // --- Categories ---
     @GetMapping("/categories")
-    public ResponseEntity<List<Category>> getAllCategories() {
-        return ResponseEntity.ok(managerService.getAllCategories());
+    public ResponseEntity<List<Category>> getAllCategories(@RequestParam(required = false) Long restaurantId) {
+        return ResponseEntity.ok(managerService.getAllCategories(restaurantId));
     }
 
     @PostMapping("/categories")
-    public ResponseEntity<Category> createCategory(@Valid @RequestBody CategoryRequestDto dto) {
-        return new ResponseEntity<>(managerService.createCategory(dto), HttpStatus.CREATED);
+    public ResponseEntity<Category> createCategory(@Valid @RequestBody CategoryRequestDto dto, @RequestParam(required = false) Long restaurantId) {
+        return new ResponseEntity<>(managerService.createCategory(dto, restaurantId), HttpStatus.CREATED);
     }
 
     @PutMapping("/categories/{id}")
@@ -44,13 +44,13 @@ public class ManagerController {
 
     // --- Dishes ---
     @GetMapping("/dishes")
-    public ResponseEntity<List<Dish>> getAllDishes() {
-        return ResponseEntity.ok(managerService.getAllDishes());
+    public ResponseEntity<List<Dish>> getAllDishes(@RequestParam(required = false) Long restaurantId) {
+        return ResponseEntity.ok(managerService.getAllDishes(restaurantId));
     }
 
     @PostMapping("/dishes")
-    public ResponseEntity<Dish> createDish(@Valid @RequestBody DishRequestDto dto) {
-        return new ResponseEntity<>(managerService.createDish(dto), HttpStatus.CREATED);
+    public ResponseEntity<Dish> createDish(@Valid @RequestBody DishRequestDto dto, @RequestParam(required = false) Long restaurantId) {
+        return new ResponseEntity<>(managerService.createDish(dto, restaurantId), HttpStatus.CREATED);
     }
 
     @PutMapping("/dishes/{id}")
@@ -71,13 +71,13 @@ public class ManagerController {
 
     // --- Tables & QR ---
     @GetMapping("/tables")
-    public ResponseEntity<List<RestaurantTable>> getAllTables() {
-        return ResponseEntity.ok(managerService.getAllTables());
+    public ResponseEntity<List<RestaurantTable>> getAllTables(@RequestParam(required = false) Long restaurantId) {
+        return ResponseEntity.ok(managerService.getAllTables(restaurantId));
     }
 
     @PostMapping("/tables")
-    public ResponseEntity<RestaurantTable> createTable(@Valid @RequestBody TableRequestDto dto) {
-        return new ResponseEntity<>(managerService.createTable(dto), HttpStatus.CREATED);
+    public ResponseEntity<RestaurantTable> createTable(@Valid @RequestBody TableRequestDto dto, @RequestParam(required = false) Long restaurantId) {
+        return new ResponseEntity<>(managerService.createTable(dto, restaurantId), HttpStatus.CREATED);
     }
 
     @PostMapping("/tables/{id}/regenerate-qr")
@@ -98,12 +98,12 @@ public class ManagerController {
 
     // --- Analytics & Orders ---
     @GetMapping("/analytics/dashboard")
-    public ResponseEntity<SalesSummaryDto> getSalesSummary() {
-        return ResponseEntity.ok(managerService.getSalesSummary());
+    public ResponseEntity<SalesSummaryDto> getSalesSummary(@RequestParam(required = false) Long restaurantId) {
+        return ResponseEntity.ok(managerService.getSalesSummary(restaurantId));
     }
 
     @GetMapping("/orders")
-    public ResponseEntity<List<OrderResponseDto>> getAllOrders() {
-        return ResponseEntity.ok(managerService.getAllOrders());
+    public ResponseEntity<List<OrderResponseDto>> getAllOrders(@RequestParam(required = false) Long restaurantId) {
+        return ResponseEntity.ok(managerService.getAllOrders(restaurantId));
     }
 }

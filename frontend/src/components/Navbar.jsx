@@ -1,12 +1,12 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Utensils, CookingPot, ConciergeBell, LayoutDashboard, QrCode, UserCheck } from 'lucide-react';
+import { Utensils, CookingPot, ConciergeBell, LayoutDashboard, QrCode, UserCheck, Store } from 'lucide-react';
 
-export default function Navbar({ onOpenLogin, user, onLogout }) {
+export default function Navbar({ onOpenLogin, onOpenRegister, user, onLogout }) {
   const location = useLocation();
 
-  // Hide top navigation bar on customer table view (/table/*)
-  if (location.pathname.startsWith('/table/')) {
+  // Hide top navigation bar on customer table view (/table/* or /r/*)
+  if (location.pathname.startsWith('/table/') || location.pathname.startsWith('/r/')) {
     return null;
   }
 
@@ -23,7 +23,7 @@ export default function Navbar({ onOpenLogin, user, onLogout }) {
       padding: '0.8rem 1.5rem'
     }}>
       <div style={{
-        maxWdith: '1280px',
+        maxWidth: '1280px',
         margin: '0 auto',
         display: 'flex',
         alignItems: 'center',
@@ -48,7 +48,7 @@ export default function Navbar({ onOpenLogin, user, onLogout }) {
               In-Dining <span style={{ color: '#10b981' }}>QR</span>
             </span>
             <span style={{ display: 'block', fontSize: '0.62rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.05em' }}>
-              ORDERING SYSTEM
+              MULTI-RESTAURANT SAAS
             </span>
           </div>
         </Link>
@@ -68,7 +68,7 @@ export default function Navbar({ onOpenLogin, user, onLogout }) {
             border: isActive('/') ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid transparent',
             transition: 'all 0.2s ease'
           }}>
-            <QrCode size={16} /> Scan QR / Table
+            <QrCode size={16} /> Home / Scanner
           </Link>
 
           <Link to="/kitchen" style={{
@@ -84,7 +84,7 @@ export default function Navbar({ onOpenLogin, user, onLogout }) {
             border: isActive('/kitchen') ? '1px solid rgba(6, 182, 212, 0.3)' : '1px solid transparent',
             transition: 'all 0.2s ease'
           }}>
-            <CookingPot size={16} /> Kitchen KDS
+            <CookingPot size={16} /> Kitchen Display
           </Link>
 
           <Link to="/waiter" style={{
@@ -117,15 +117,31 @@ export default function Navbar({ onOpenLogin, user, onLogout }) {
               border: isActive('/manager') ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid transparent',
               transition: 'all 0.2s ease'
             }}>
-              <LayoutDashboard size={16} /> Manager
+              <LayoutDashboard size={16} /> Admin Portal
             </Link>
           )}
         </div>
 
-        {/* User Auth Action */}
-        <div>
+        {/* User Auth Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+              {user.restaurantName && (
+                <span style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.3rem 0.65rem',
+                  borderRadius: '9999px',
+                  backgroundColor: 'rgba(249, 115, 22, 0.15)',
+                  border: '1px solid rgba(249, 115, 22, 0.3)',
+                  color: '#fb923c',
+                  fontSize: '0.75rem',
+                  fontWeight: '700'
+                }}>
+                  <Store size={12} /> {user.restaurantName}
+                </span>
+              )}
               <span className="badge badge-available" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                 <UserCheck size={12} /> {user.fullName} ({user.role})
               </span>
@@ -134,9 +150,27 @@ export default function Navbar({ onOpenLogin, user, onLogout }) {
               </button>
             </div>
           ) : (
-            <button onClick={onOpenLogin} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
-              Staff Login
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button
+                onClick={onOpenRegister}
+                style={{
+                  padding: '0.5rem 0.9rem',
+                  fontSize: '0.85rem',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                  color: '#fff',
+                  fontWeight: '700',
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)'
+                }}
+              >
+                + Register Restaurant
+              </button>
+              <button onClick={onOpenLogin} className="btn-secondary" style={{ padding: '0.5rem 0.9rem', fontSize: '0.85rem' }}>
+                Staff Login
+              </button>
+            </div>
           )}
         </div>
       </div>

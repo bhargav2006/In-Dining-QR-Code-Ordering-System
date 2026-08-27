@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -28,6 +29,7 @@ public class CustomerService {
     private final DishRepository dishRepository;
     private final OrderRepository orderRepository;
     private final AssistanceRequestRepository assistanceRequestRepository;
+    private final RestaurantRepository restaurantRepository;
 
     @Transactional
     public TableScanResponseDto startOrGetSession(TableScanRequestDto request) {
@@ -36,15 +38,35 @@ public class CustomerService {
         if (request.getQrToken() != null && !request.getQrToken().isBlank()) {
             table = tableRepository.findByQrToken(request.getQrToken())
                     .orElseThrow(() -> new ResourceNotFoundException("Invalid QR Code Token"));
+        } else if (request.getRestaurantSlug() != null && !request.getRestaurantSlug().isBlank() && request.getTableNumber() != null) {
+            table = tableRepository.findByRestaurantSlugAndTableNumber(request.getRestaurantSlug(), request.getTableNumber())
+                    .orElseThrow(() -> new ResourceNotFoundException("Table #" + request.getTableNumber() + " not found for restaurant '" + request.getRestaurantSlug() + "'"));
+        } else if (request.getRestaurantId() != null && request.getTableNumber() != null) {
+            table = tableRepository.findByRestaurantIdAndTableNumber(request.getRestaurantId(), request.getTableNumber())
+                    .orElseThrow(() -> new ResourceNotFoundException("Table #" + request.getTableNumber() + " not found for restaurant ID " + request.getRestaurantId()));
         } else if (request.getTableNumber() != null) {
+            // Fallback for default restaurant
             table = tableRepository.findByTableNumber(request.getTableNumber())
                     .orElseThrow(() -> new ResourceNotFoundException("Table #" + request.getTableNumber() + " not found"));
         } else {
-            throw new BadRequestException("Provide either a QR token or table number");
+            throw new BadRequestException("Provide either a QR token, restaurant slug/id with table number");
         }
 
+        Restaurant restaurant = table.getRestaurant();
+
         // Check if there is an active session for this table
-        java.util.Optional<TableSession> activeSessionOpt = sessionRepository.findByTableIdAndStatus(table.getId(), SessionStatus.ACTIVE);
+        Optional<TableSession> activeSessionOpt = sessionRepository.findByTableIdAndStatus(table.getId(), SessionStatus.ACTIVE);
+
+        TableScanResponseDto.TableScanResponseDtoBuilder responseBuilder = TableScanResponseDto.builder()
+                .tableId(table.getId())
+                .tableNumber(table.getTableNumber())
+                .capacity(table.getCapacity())
+                .tableStatus(table.getStatus())
+                .qrToken(table.getQrToken())
+                .restaurantId(restaurant != null ? restaurant.getId() : null)
+                .restaurantName(restaurant != null ? restaurant.getName() : null)
+                .restaurantSlug(restaurant != null ? restaurant.getSlug() : null)
+                .restaurantLogoUrl(restaurant != null ? restaurant.getLogoUrl() : null);
 
         if (activeSessionOpt.isPresent()) {
             TableSession activeSession = activeSessionOpt.get();
@@ -55,24 +77,14 @@ public class CustomerService {
 
             if (!tokenMatches && (table.getStatus() == TableStatus.OCCUPIED || table.getStatus() == TableStatus.BILL_REQUESTED)) {
                 // Table is currently occupied by another customer group - Lock access!
-                return TableScanResponseDto.builder()
-                        .tableId(table.getId())
-                        .tableNumber(table.getTableNumber())
-                        .capacity(table.getCapacity())
-                        .tableStatus(table.getStatus())
+                return responseBuilder
                         .isOccupiedLocked(true)
-                        .qrToken(table.getQrToken())
                         .build();
             }
 
-            return TableScanResponseDto.builder()
-                    .tableId(table.getId())
-                    .tableNumber(table.getTableNumber())
-                    .capacity(table.getCapacity())
-                    .tableStatus(table.getStatus())
+            return responseBuilder
                     .sessionToken(activeSession.getSessionToken())
                     .isOccupiedLocked(false)
-                    .qrToken(table.getQrToken())
                     .build();
         } else {
             // Table has no active session / free - Create new session & mark OCCUPIED
@@ -85,35 +97,71 @@ public class CustomerService {
                     .sessionToken("SESS-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
                     .status(SessionStatus.ACTIVE)
                     .startTime(LocalDateTime.now())
+                    .restaurant(restaurant)
                     .build();
             TableSession savedSession = sessionRepository.save(newSession);
 
-            return TableScanResponseDto.builder()
-                    .tableId(table.getId())
-                    .tableNumber(table.getTableNumber())
-                    .capacity(table.getCapacity())
-                    .tableStatus(table.getStatus())
+            return responseBuilder
                     .sessionToken(savedSession.getSessionToken())
                     .isOccupiedLocked(false)
-                    .qrToken(table.getQrToken())
                     .build();
         }
     }
 
     public List<Category> getActiveCategories() {
+        return getActiveCategories(null, null);
+    }
+
+    public List<Category> getActiveCategories(Long restaurantId, String restaurantSlug) {
+        Long targetRestId = resolveRestaurantId(restaurantId, restaurantSlug);
+        if (targetRestId != null) {
+            return categoryRepository.findByRestaurantIdAndIsActiveTrueOrderByDisplayOrderAsc(targetRestId);
+        }
         return categoryRepository.findByIsActiveTrueOrderByDisplayOrderAsc();
     }
 
     public List<Dish> getAvailableDishes(Long categoryId, String search) {
+        return getAvailableDishes(null, null, categoryId, search);
+    }
+
+    public List<Dish> getAvailableDishes(Long restaurantId, String restaurantSlug, Long categoryId, String search) {
+        Long targetRestId = resolveRestaurantId(restaurantId, restaurantSlug);
+
         if (search != null && !search.isBlank()) {
+            if (targetRestId != null) {
+                return dishRepository.findByRestaurantIdAndNameContainingIgnoreCase(targetRestId, search).stream()
+                        .filter(Dish::getIsAvailable)
+                        .collect(Collectors.toList());
+            }
             return dishRepository.findByNameContainingIgnoreCase(search).stream()
                     .filter(Dish::getIsAvailable)
                     .collect(Collectors.toList());
         }
+
         if (categoryId != null) {
+            if (targetRestId != null) {
+                return dishRepository.findByRestaurantIdAndCategoryIdAndIsAvailableTrue(targetRestId, categoryId);
+            }
             return dishRepository.findByCategoryIdAndIsAvailableTrue(categoryId);
         }
+
+        if (targetRestId != null) {
+            return dishRepository.findByRestaurantIdAndIsAvailableTrue(targetRestId);
+        }
         return dishRepository.findByIsAvailableTrue();
+    }
+
+    private Long resolveRestaurantId(Long restaurantId, String restaurantSlug) {
+        if (restaurantId != null) {
+            return restaurantId;
+        }
+        if (restaurantSlug != null && !restaurantSlug.isBlank()) {
+            Optional<Restaurant> r = restaurantRepository.findBySlug(restaurantSlug);
+            if (r.isPresent()) {
+                return r.get().getId();
+            }
+        }
+        return null;
     }
 
     @Transactional
@@ -140,6 +188,7 @@ public class CustomerService {
                 .orderNumber("ORD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
                 .tableSession(session)
                 .tableNumber(session.getTableNumber())
+                .restaurant(session.getRestaurant())
                 .status(OrderStatus.PLACED)
                 .notes(request.getNotes())
                 .build();
@@ -268,6 +317,7 @@ public class CustomerService {
             AssistanceRequest request = AssistanceRequest.builder()
                     .tableSession(session)
                     .tableNumber(session.getTableNumber())
+                    .restaurant(session.getRestaurant())
                     .requestType(AssistanceType.BILL_REQUEST)
                     .status(AssistanceStatus.PENDING)
                     .note("💰 CASH PAYMENT COLLECTION REQUEST. Customer: " +
@@ -314,6 +364,7 @@ public class CustomerService {
         AssistanceRequest request = AssistanceRequest.builder()
                 .tableSession(session)
                 .tableNumber(session.getTableNumber())
+                .restaurant(session.getRestaurant())
                 .requestType(requestDto.getRequestType())
                 .status(AssistanceStatus.PENDING)
                 .note(requestDto.getNote())

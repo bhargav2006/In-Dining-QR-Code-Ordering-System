@@ -8,6 +8,8 @@ import java.util.List;
 
 public interface AssistanceRequestRepository extends JpaRepository<AssistanceRequest, Long> {
     List<AssistanceRequest> findByStatusOrderByCreatedAtDesc(AssistanceStatus status);
+    List<AssistanceRequest> findByRestaurantIdAndStatusOrderByCreatedAtDesc(Long restaurantId, AssistanceStatus status);
+
     List<AssistanceRequest> findByTableNumberAndStatus(Integer tableNumber, AssistanceStatus status);
     List<AssistanceRequest> findByTableSessionIdOrderByCreatedAtDesc(Long sessionId);
 }

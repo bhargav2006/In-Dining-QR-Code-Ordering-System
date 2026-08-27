@@ -17,4 +17,8 @@ public class AuthResponseDto {
     private String email;
     private UserRole role;
     private String token;
+
+    private Long restaurantId;
+    private String restaurantName;
+    private String restaurantSlug;
 }

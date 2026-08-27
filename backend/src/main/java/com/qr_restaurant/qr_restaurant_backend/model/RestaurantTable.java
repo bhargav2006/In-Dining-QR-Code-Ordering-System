@@ -10,7 +10,9 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "restaurant_tables")
+@Table(name = "restaurant_tables", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"restaurant_id", "table_number"})
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -21,8 +23,12 @@ public class RestaurantTable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
+    @Column(name = "table_number", nullable = false)
     private Integer tableNumber;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "restaurant_id")
+    private Restaurant restaurant;
 
     @Column(nullable = false)
     private Integer capacity;

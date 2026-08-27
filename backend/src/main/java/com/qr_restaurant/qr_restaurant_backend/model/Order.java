@@ -31,6 +31,10 @@ public class Order {
     @JoinColumn(name = "session_id", nullable = false)
     private TableSession tableSession;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "restaurant_id")
+    private Restaurant restaurant;
+
     @Column(nullable = false)
     private Integer tableNumber;
 

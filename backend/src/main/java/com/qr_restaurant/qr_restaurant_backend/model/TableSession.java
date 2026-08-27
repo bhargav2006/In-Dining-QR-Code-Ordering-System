@@ -25,6 +25,10 @@ public class TableSession {
     @JoinColumn(name = "table_id", nullable = false)
     private RestaurantTable table;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "restaurant_id")
+    private Restaurant restaurant;
+
     @Column(nullable = false)
     private Integer tableNumber;
 

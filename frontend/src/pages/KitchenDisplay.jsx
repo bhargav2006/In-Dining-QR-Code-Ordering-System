@@ -1,16 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { CookingPot, Clock, CheckCircle, Flame, AlertCircle, RefreshCw } from 'lucide-react';
+import { CookingPot, Clock, CheckCircle, Flame, AlertCircle, RefreshCw, Store } from 'lucide-react';
 import { kitchenApi } from '../services/api';
 
-export default function KitchenDisplay() {
+export default function KitchenDisplay({ user, onOpenLogin }) {
+  const currentUser = user || (() => {
+    try {
+      const saved = localStorage.getItem('staffUser');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  })();
+
+  const restId = currentUser?.restaurantId;
+
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
   const fetchKitchenOrders = async () => {
     try {
-      const data = await kitchenApi.getOrders();
-      setOrders(data);
+      const data = await kitchenApi.getOrders(restId);
+      setOrders(data || []);
     } catch (err) {
       console.error('Error fetching kitchen orders:', err);
     } finally {
@@ -23,7 +34,7 @@ export default function KitchenDisplay() {
     const pollMs = Number(import.meta.env.VITE_POLLING_INTERVAL_MS) || 4000;
     const interval = setInterval(fetchKitchenOrders, pollMs);
     return () => clearInterval(interval);
-  }, []);
+  }, [restId]);
 
   const handleStatusAdvance = async (orderId, currentStatus) => {
     let nextStatus = 'PREPARING';
@@ -49,7 +60,7 @@ export default function KitchenDisplay() {
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem 1.5rem' }}>
       
       {/* Header Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
           <div style={{
             background: 'rgba(6, 182, 212, 0.15)',
@@ -61,14 +72,41 @@ export default function KitchenDisplay() {
             <CookingPot size={28} />
           </div>
           <div>
-            <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#fff' }}>Kitchen Display System (KDS)</h1>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Real-time cooking queue & status workflow</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#fff', margin: 0 }}>Kitchen Display System (KDS)</h1>
+              {currentUser?.restaurantName && (
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.3rem 0.75rem',
+                  borderRadius: '9999px',
+                  backgroundColor: 'rgba(249, 115, 22, 0.15)',
+                  border: '1px solid rgba(249, 115, 22, 0.35)',
+                  color: '#fb923c',
+                  fontSize: '0.8rem',
+                  fontWeight: '700'
+                }}>
+                  <Store size={13} /> {currentUser.restaurantName}
+                </span>
+              )}
+            </div>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, marginTop: '0.2rem' }}>
+              Real-time cooking queue & status workflow
+            </p>
           </div>
         </div>
 
-        <button onClick={fetchKitchenOrders} className="btn-secondary">
-          <RefreshCw size={16} /> Refresh Queue
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {!currentUser && onOpenLogin && (
+            <button onClick={onOpenLogin} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
+              Login to Switch Restaurant
+            </button>
+          )}
+          <button onClick={fetchKitchenOrders} className="btn-secondary">
+            <RefreshCw size={16} /> Refresh Queue
+          </button>
+        </div>
       </div>
 
       {/* Kanban Grid */}
@@ -76,7 +114,9 @@ export default function KitchenDisplay() {
         <div className="glass-panel" style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>
           <CheckCircle size={48} style={{ color: '#10b981', margin: '0 auto 1rem' }} />
           <h3 style={{ fontSize: '1.2rem', color: '#fff', fontWeight: 700 }}>Kitchen Queue Clear!</h3>
-          <p style={{ marginTop: '0.4rem' }}>No active orders waiting for preparation.</p>
+          <p style={{ marginTop: '0.4rem' }}>
+            No active orders waiting for preparation {currentUser?.restaurantName ? `for ${currentUser.restaurantName}` : ''}.
+          </p>
         </div>
       ) : (
         <div style={{
@@ -172,7 +212,7 @@ export default function KitchenDisplay() {
                   className="btn-primary"
                   style={{
                     width: '100%',
-                    justify: 'center',
+                    justifyContent: 'center',
                     background: order.status === 'PLACED' 
                       ? 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)' 
                       : (order.status === 'PREPARING' ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'linear-gradient(135deg, #10b981 0%, #047857 100%)')

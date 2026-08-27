@@ -4,18 +4,12 @@ import com.qr_restaurant.qr_restaurant_backend.dto.AssistanceRequestDto;
 import com.qr_restaurant.qr_restaurant_backend.dto.OrderResponseDto;
 import com.qr_restaurant.qr_restaurant_backend.exception.BadRequestException;
 import com.qr_restaurant.qr_restaurant_backend.exception.ResourceNotFoundException;
-import com.qr_restaurant.qr_restaurant_backend.model.AssistanceRequest;
-import com.qr_restaurant.qr_restaurant_backend.model.Order;
-import com.qr_restaurant.qr_restaurant_backend.model.RestaurantTable;
-import com.qr_restaurant.qr_restaurant_backend.model.TableSession;
+import com.qr_restaurant.qr_restaurant_backend.model.*;
 import com.qr_restaurant.qr_restaurant_backend.model.enums.AssistanceStatus;
 import com.qr_restaurant.qr_restaurant_backend.model.enums.OrderStatus;
 import com.qr_restaurant.qr_restaurant_backend.model.enums.SessionStatus;
 import com.qr_restaurant.qr_restaurant_backend.model.enums.TableStatus;
-import com.qr_restaurant.qr_restaurant_backend.repository.AssistanceRequestRepository;
-import com.qr_restaurant.qr_restaurant_backend.repository.OrderRepository;
-import com.qr_restaurant.qr_restaurant_backend.repository.RestaurantTableRepository;
-import com.qr_restaurant.qr_restaurant_backend.repository.TableSessionRepository;
+import com.qr_restaurant.qr_restaurant_backend.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,10 +26,31 @@ public class WaiterService {
     private final TableSessionRepository sessionRepository;
     private final AssistanceRequestRepository assistanceRequestRepository;
     private final OrderRepository orderRepository;
+    private final RestaurantRepository restaurantRepository;
     private final CustomerService customerService;
 
+    private Long resolveRestaurantId(Long restaurantId) {
+        if (restaurantId != null) {
+            return restaurantId;
+        }
+        return restaurantRepository.findBySlug("gourmet-bistro")
+                .map(Restaurant::getId)
+                .orElse(null);
+    }
+
     public List<RestaurantTable> getAllTables() {
-        List<RestaurantTable> tables = tableRepository.findAllByOrderByTableNumberAsc();
+        return getAllTables(null);
+    }
+
+    public List<RestaurantTable> getAllTables(Long restaurantId) {
+        Long targetRestId = resolveRestaurantId(restaurantId);
+        List<RestaurantTable> tables;
+        if (targetRestId != null) {
+            tables = tableRepository.findByRestaurantIdOrderByTableNumberAsc(targetRestId);
+        } else {
+            tables = tableRepository.findAllByOrderByTableNumberAsc();
+        }
+
         for (RestaurantTable table : tables) {
             TableSession activeSession = sessionRepository.findByTableIdAndStatus(table.getId(), SessionStatus.ACTIVE).orElse(null);
             if (activeSession != null) {
@@ -46,8 +61,19 @@ public class WaiterService {
     }
 
     public List<AssistanceRequestDto> getPendingAssistanceRequests() {
-        return assistanceRequestRepository.findByStatusOrderByCreatedAtDesc(AssistanceStatus.PENDING)
-                .stream()
+        return getPendingAssistanceRequests(null);
+    }
+
+    public List<AssistanceRequestDto> getPendingAssistanceRequests(Long restaurantId) {
+        Long targetRestId = resolveRestaurantId(restaurantId);
+        List<AssistanceRequest> requests;
+        if (targetRestId != null) {
+            requests = assistanceRequestRepository.findByRestaurantIdAndStatusOrderByCreatedAtDesc(targetRestId, AssistanceStatus.PENDING);
+        } else {
+            requests = assistanceRequestRepository.findByStatusOrderByCreatedAtDesc(AssistanceStatus.PENDING);
+        }
+
+        return requests.stream()
                 .map(req -> AssistanceRequestDto.builder()
                         .id(req.getId())
                         .sessionToken(req.getTableSession() != null ? req.getTableSession().getSessionToken() : null)
@@ -119,6 +145,7 @@ public class WaiterService {
                         .sessionToken("SESS-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase())
                         .status(SessionStatus.ACTIVE)
                         .startTime(LocalDateTime.now())
+                        .restaurant(table.getRestaurant())
                         .build();
                 activeSession = sessionRepository.save(activeSession);
             }
@@ -142,8 +169,19 @@ public class WaiterService {
     }
 
     public List<OrderResponseDto> getReadyToServeOrders() {
-        return orderRepository.findByStatusOrderByCreatedAtDesc(OrderStatus.READY)
-                .stream()
+        return getReadyToServeOrders(null);
+    }
+
+    public List<OrderResponseDto> getReadyToServeOrders(Long restaurantId) {
+        Long targetRestId = resolveRestaurantId(restaurantId);
+        List<Order> orders;
+        if (targetRestId != null) {
+            orders = orderRepository.findByRestaurantIdAndStatusOrderByCreatedAtDesc(targetRestId, OrderStatus.READY);
+        } else {
+            orders = orderRepository.findByStatusOrderByCreatedAtDesc(OrderStatus.READY);
+        }
+
+        return orders.stream()
                 .map(customerService::mapToOrderResponseDto)
                 .collect(Collectors.toList());
     }

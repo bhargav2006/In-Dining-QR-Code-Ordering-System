@@ -29,22 +29,55 @@ public class ManagerService {
     private final RestaurantTableRepository tableRepository;
     private final OrderRepository orderRepository;
     private final TableSessionRepository sessionRepository;
+    private final RestaurantRepository restaurantRepository;
     private final CustomerService customerService;
+
+    private Restaurant getRestaurantOrDefault(Long restaurantId) {
+        if (restaurantId != null) {
+            return restaurantRepository.findById(restaurantId)
+                    .orElseGet(this::getDefaultRestaurant);
+        }
+        return getDefaultRestaurant();
+    }
+
+    private Restaurant getDefaultRestaurant() {
+        return restaurantRepository.findBySlug("gourmet-bistro")
+                .orElseGet(() -> restaurantRepository.findAll().stream().findFirst().orElse(null));
+    }
 
     // --- Categories ---
     public List<Category> getAllCategories() {
+        return getAllCategories(null);
+    }
+
+    public List<Category> getAllCategories(Long restaurantId) {
+        Restaurant restaurant = getRestaurantOrDefault(restaurantId);
+        if (restaurant != null) {
+            return categoryRepository.findByRestaurantIdOrderByDisplayOrderAsc(restaurant.getId());
+        }
         return categoryRepository.findAllByOrderByDisplayOrderAsc();
     }
 
-    @Transactional
     public Category createCategory(CategoryRequestDto dto) {
-        if (categoryRepository.findByName(dto.getName()).isPresent()) {
+        return createCategory(dto, null);
+    }
+
+    @Transactional
+    public Category createCategory(CategoryRequestDto dto, Long restaurantId) {
+        Restaurant restaurant = getRestaurantOrDefault(restaurantId);
+        if (restaurant != null) {
+            if (categoryRepository.findByNameAndRestaurantId(dto.getName(), restaurant.getId()).isPresent()) {
+                throw new BadRequestException("Category '" + dto.getName() + "' already exists for this restaurant");
+            }
+        } else if (categoryRepository.findByName(dto.getName()).isPresent()) {
             throw new BadRequestException("Category '" + dto.getName() + "' already exists");
         }
+
         Category category = Category.builder()
                 .name(dto.getName())
                 .displayOrder(dto.getDisplayOrder() != null ? dto.getDisplayOrder() : 0)
                 .isActive(dto.getIsActive() != null ? dto.getIsActive() : true)
+                .restaurant(restaurant)
                 .build();
         return categoryRepository.save(category);
     }
@@ -68,13 +101,30 @@ public class ManagerService {
 
     // --- Dishes ---
     public List<Dish> getAllDishes() {
+        return getAllDishes(null);
+    }
+
+    public List<Dish> getAllDishes(Long restaurantId) {
+        Restaurant restaurant = getRestaurantOrDefault(restaurantId);
+        if (restaurant != null) {
+            return dishRepository.findByRestaurantId(restaurant.getId());
+        }
         return dishRepository.findAll();
     }
 
-    @Transactional
     public Dish createDish(DishRequestDto dto) {
+        return createDish(dto, null);
+    }
+
+    @Transactional
+    public Dish createDish(DishRequestDto dto, Long restaurantId) {
         Category category = categoryRepository.findById(dto.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category ID " + dto.getCategoryId() + " not found"));
+
+        Restaurant restaurant = getRestaurantOrDefault(restaurantId);
+        if (restaurant == null) {
+            restaurant = category.getRestaurant();
+        }
 
         Dish dish = Dish.builder()
                 .name(dto.getName())
@@ -82,6 +132,7 @@ public class ManagerService {
                 .price(dto.getPrice())
                 .imageUrl(dto.getImageUrl())
                 .category(category)
+                .restaurant(restaurant)
                 .isAvailable(dto.getIsAvailable() != null ? dto.getIsAvailable() : true)
                 .preparationTimeMinutes(dto.getPreparationTimeMinutes() != null ? dto.getPreparationTimeMinutes() : 15)
                 .optionsJson(dto.getOptionsJson())
@@ -126,7 +177,18 @@ public class ManagerService {
 
     // --- Tables & QR Code ---
     public List<RestaurantTable> getAllTables() {
-        List<RestaurantTable> tables = tableRepository.findAllByOrderByTableNumberAsc();
+        return getAllTables(null);
+    }
+
+    public List<RestaurantTable> getAllTables(Long restaurantId) {
+        Restaurant restaurant = getRestaurantOrDefault(restaurantId);
+        List<RestaurantTable> tables;
+        if (restaurant != null) {
+            tables = tableRepository.findByRestaurantIdOrderByTableNumberAsc(restaurant.getId());
+        } else {
+            tables = tableRepository.findAllByOrderByTableNumberAsc();
+        }
+
         for (RestaurantTable table : tables) {
             TableSession activeSession = sessionRepository.findByTableIdAndStatus(table.getId(), SessionStatus.ACTIVE).orElse(null);
             if (activeSession != null) {
@@ -136,16 +198,30 @@ public class ManagerService {
         return tables;
     }
 
-    @Transactional
     public RestaurantTable createTable(TableRequestDto dto) {
-        if (tableRepository.findByTableNumber(dto.getTableNumber()).isPresent()) {
+        return createTable(dto, null);
+    }
+
+    @Transactional
+    public RestaurantTable createTable(TableRequestDto dto, Long restaurantId) {
+        Restaurant restaurant = getRestaurantOrDefault(restaurantId);
+        if (restaurant != null) {
+            if (tableRepository.findByRestaurantIdAndTableNumber(restaurant.getId(), dto.getTableNumber()).isPresent()) {
+                throw new BadRequestException("Table #" + dto.getTableNumber() + " already exists for this restaurant");
+            }
+        } else if (tableRepository.findByTableNumber(dto.getTableNumber()).isPresent()) {
             throw new BadRequestException("Table #" + dto.getTableNumber() + " already exists");
         }
+
+        String slug = restaurant != null ? restaurant.getSlug().toUpperCase() : "REST";
+        String qrToken = "QR-" + slug + "-TBL-" + dto.getTableNumber() + "-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+
         RestaurantTable table = RestaurantTable.builder()
                 .tableNumber(dto.getTableNumber())
                 .capacity(dto.getCapacity())
                 .status(TableStatus.AVAILABLE)
-                .qrToken("QR-TBL-" + dto.getTableNumber() + "-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase())
+                .qrToken(qrToken)
+                .restaurant(restaurant)
                 .build();
         return tableRepository.save(table);
     }
@@ -154,7 +230,8 @@ public class ManagerService {
     public RestaurantTable regenerateQrToken(Long tableId) {
         RestaurantTable table = tableRepository.findById(tableId)
                 .orElseThrow(() -> new ResourceNotFoundException("Table ID " + tableId + " not found"));
-        table.setQrToken("QR-TBL-" + table.getTableNumber() + "-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase());
+        String slug = table.getRestaurant() != null ? table.getRestaurant().getSlug().toUpperCase() : "REST";
+        table.setQrToken("QR-" + slug + "-TBL-" + table.getTableNumber() + "-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase());
         return tableRepository.save(table);
     }
 
@@ -164,7 +241,12 @@ public class ManagerService {
                 .orElseThrow(() -> new ResourceNotFoundException("Table ID " + id + " not found"));
 
         if (dto.getTableNumber() != null && !dto.getTableNumber().equals(table.getTableNumber())) {
-            if (tableRepository.findByTableNumber(dto.getTableNumber()).isPresent()) {
+            Long restId = table.getRestaurant() != null ? table.getRestaurant().getId() : null;
+            if (restId != null) {
+                if (tableRepository.findByRestaurantIdAndTableNumber(restId, dto.getTableNumber()).isPresent()) {
+                    throw new BadRequestException("Table #" + dto.getTableNumber() + " already exists for this restaurant");
+                }
+            } else if (tableRepository.findByTableNumber(dto.getTableNumber()).isPresent()) {
                 throw new BadRequestException("Table #" + dto.getTableNumber() + " already exists");
             }
             table.setTableNumber(dto.getTableNumber());
@@ -186,32 +268,41 @@ public class ManagerService {
 
     // --- Sales & Analytics ---
     public SalesSummaryDto getSalesSummary() {
+        return getSalesSummary(null);
+    }
+
+    public SalesSummaryDto getSalesSummary(Long restaurantId) {
+        Restaurant restaurant = getRestaurantOrDefault(restaurantId);
+        Long rId = restaurant != null ? restaurant.getId() : null;
+
         LocalDateTime startOfDay = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
         LocalDateTime startOfYesterday = startOfDay.minusDays(1);
 
-        BigDecimal todaySales = orderRepository.calculateTotalSalesSince(startOfDay);
+        BigDecimal todaySales = rId != null ? orderRepository.calculateTotalSalesSinceForRestaurant(startOfDay, rId) : orderRepository.calculateTotalSalesSince(startOfDay);
         if (todaySales == null) todaySales = BigDecimal.ZERO;
 
-        Long todayOrders = orderRepository.countOrdersSince(startOfDay);
+        Long todayOrders = rId != null ? orderRepository.countOrdersSinceForRestaurant(startOfDay, rId) : orderRepository.countOrdersSince(startOfDay);
         if (todayOrders == null) todayOrders = 0L;
 
-        BigDecimal yesterdaySales = orderRepository.calculateTotalSalesBetween(startOfYesterday, startOfDay);
+        BigDecimal yesterdaySales = rId != null ? orderRepository.calculateTotalSalesBetweenForRestaurant(startOfYesterday, startOfDay, rId) : orderRepository.calculateTotalSalesBetween(startOfYesterday, startOfDay);
         if (yesterdaySales == null) yesterdaySales = BigDecimal.ZERO;
 
-        Long yesterdayOrders = orderRepository.countOrdersBetween(startOfYesterday, startOfDay);
+        Long yesterdayOrders = rId != null ? orderRepository.countOrdersBetweenForRestaurant(startOfYesterday, startOfDay, rId) : orderRepository.countOrdersBetween(startOfYesterday, startOfDay);
         if (yesterdayOrders == null) yesterdayOrders = 0L;
 
-        BigDecimal allTimeSales = orderRepository.calculateAllTimeSales();
+        BigDecimal allTimeSales = rId != null ? orderRepository.calculateAllTimeSalesForRestaurant(rId) : orderRepository.calculateAllTimeSales();
         if (allTimeSales == null) allTimeSales = BigDecimal.ZERO;
 
-        Long allTimeOrders = orderRepository.countAllTimeOrders();
+        Long allTimeOrders = rId != null ? orderRepository.countAllTimeOrdersForRestaurant(rId) : orderRepository.countAllTimeOrders();
         if (allTimeOrders == null) allTimeOrders = 0L;
 
-        List<RestaurantTable> tables = tableRepository.findAll();
+        List<RestaurantTable> tables = rId != null ? tableRepository.findByRestaurantIdOrderByTableNumberAsc(rId) : tableRepository.findAll();
         long activeTables = tables.stream().filter(t -> t.getStatus() != TableStatus.AVAILABLE).count();
 
         List<OrderStatus> pendingStatuses = Arrays.asList(OrderStatus.PLACED, OrderStatus.PREPARING, OrderStatus.READY);
-        long pendingOrders = orderRepository.findByStatusInOrderByCreatedAtAsc(pendingStatuses).size();
+        long pendingOrders = rId != null ?
+                orderRepository.findByRestaurantIdAndStatusInOrderByCreatedAtAsc(rId, pendingStatuses).size() :
+                orderRepository.findByStatusInOrderByCreatedAtAsc(pendingStatuses).size();
 
         return SalesSummaryDto.builder()
                 .todaySales(todaySales)
@@ -227,7 +318,14 @@ public class ManagerService {
     }
 
     public List<OrderResponseDto> getAllOrders() {
-        List<Order> allRawOrders = orderRepository.findAllByOrderByCreatedAtDesc();
+        return getAllOrders(null);
+    }
+
+    public List<OrderResponseDto> getAllOrders(Long restaurantId) {
+        Restaurant restaurant = getRestaurantOrDefault(restaurantId);
+        List<Order> allRawOrders = restaurant != null ?
+                orderRepository.findByRestaurantIdOrderByCreatedAtDesc(restaurant.getId()) :
+                orderRepository.findAllByOrderByCreatedAtDesc();
 
         // Group non-cancelled orders by TableSession
         Map<Long, List<Order>> ordersBySession = allRawOrders.stream()
@@ -279,7 +377,7 @@ public class ManagerService {
 
             // Determine consolidated status
             OrderStatus consolidatedStatus = OrderStatus.COMPLETED;
-            if (session.getStatus() == com.qr_restaurant.qr_restaurant_backend.model.enums.SessionStatus.ACTIVE) {
+            if (session.getStatus() == SessionStatus.ACTIVE) {
                 boolean anyPreparing = sessionOrders.stream().anyMatch(o -> o.getStatus() == OrderStatus.PREPARING);
                 boolean anyPlaced = sessionOrders.stream().anyMatch(o -> o.getStatus() == OrderStatus.PLACED);
                 boolean anyReady = sessionOrders.stream().anyMatch(o -> o.getStatus() == OrderStatus.READY);
