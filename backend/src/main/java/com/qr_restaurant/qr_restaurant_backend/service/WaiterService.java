@@ -10,6 +10,7 @@ import com.qr_restaurant.qr_restaurant_backend.model.enums.OrderStatus;
 import com.qr_restaurant.qr_restaurant_backend.model.enums.SessionStatus;
 import com.qr_restaurant.qr_restaurant_backend.model.enums.TableStatus;
 import com.qr_restaurant.qr_restaurant_backend.repository.*;
+import com.qr_restaurant.qr_restaurant_backend.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,30 +27,11 @@ public class WaiterService {
     private final TableSessionRepository sessionRepository;
     private final AssistanceRequestRepository assistanceRequestRepository;
     private final OrderRepository orderRepository;
-    private final RestaurantRepository restaurantRepository;
     private final CustomerService customerService;
 
-    private Long resolveRestaurantId(Long restaurantId) {
-        if (restaurantId != null) {
-            return restaurantId;
-        }
-        return restaurantRepository.findBySlug("gourmet-bistro")
-                .map(Restaurant::getId)
-                .orElse(null);
-    }
-
     public List<RestaurantTable> getAllTables() {
-        return getAllTables(null);
-    }
-
-    public List<RestaurantTable> getAllTables(Long restaurantId) {
-        Long targetRestId = resolveRestaurantId(restaurantId);
-        List<RestaurantTable> tables;
-        if (targetRestId != null) {
-            tables = tableRepository.findByRestaurantIdOrderByTableNumberAsc(targetRestId);
-        } else {
-            tables = tableRepository.findAllByOrderByTableNumberAsc();
-        }
+        Long targetRestId = SecurityUtil.getRequiredRestaurantId();
+        List<RestaurantTable> tables = tableRepository.findByRestaurantIdOrderByTableNumberAsc(targetRestId);
 
         for (RestaurantTable table : tables) {
             TableSession activeSession = sessionRepository.findByTableIdAndStatus(table.getId(), SessionStatus.ACTIVE).orElse(null);
@@ -60,18 +42,13 @@ public class WaiterService {
         return tables;
     }
 
-    public List<AssistanceRequestDto> getPendingAssistanceRequests() {
-        return getPendingAssistanceRequests(null);
+    public List<RestaurantTable> getAllTables(Long ignoredRestaurantId) {
+        return getAllTables();
     }
 
-    public List<AssistanceRequestDto> getPendingAssistanceRequests(Long restaurantId) {
-        Long targetRestId = resolveRestaurantId(restaurantId);
-        List<AssistanceRequest> requests;
-        if (targetRestId != null) {
-            requests = assistanceRequestRepository.findByRestaurantIdAndStatusOrderByCreatedAtDesc(targetRestId, AssistanceStatus.PENDING);
-        } else {
-            requests = assistanceRequestRepository.findByStatusOrderByCreatedAtDesc(AssistanceStatus.PENDING);
-        }
+    public List<AssistanceRequestDto> getPendingAssistanceRequests() {
+        Long targetRestId = SecurityUtil.getRequiredRestaurantId();
+        List<AssistanceRequest> requests = assistanceRequestRepository.findByRestaurantIdAndStatusOrderByCreatedAtDesc(targetRestId, AssistanceStatus.PENDING);
 
         return requests.stream()
                 .map(req -> AssistanceRequestDto.builder()
@@ -87,10 +64,19 @@ public class WaiterService {
                 .collect(Collectors.toList());
     }
 
+    public List<AssistanceRequestDto> getPendingAssistanceRequests(Long ignoredRestaurantId) {
+        return getPendingAssistanceRequests();
+    }
+
     @Transactional
     public AssistanceRequestDto resolveAssistanceRequest(Long requestId) {
+        Long targetRestId = SecurityUtil.getRequiredRestaurantId();
         AssistanceRequest request = assistanceRequestRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Assistance request ID " + requestId + " not found"));
+
+        if (request.getRestaurant() == null || !request.getRestaurant().getId().equals(targetRestId)) {
+            throw new BadRequestException("Assistance request ID " + requestId + " does not belong to your restaurant");
+        }
 
         request.setStatus(AssistanceStatus.RESOLVED);
         request.setResolvedAt(LocalDateTime.now());
@@ -131,8 +117,13 @@ public class WaiterService {
 
     @Transactional
     public RestaurantTable updateTableStatus(Long tableId, TableStatus status) {
+        Long targetRestId = SecurityUtil.getRequiredRestaurantId();
         RestaurantTable table = tableRepository.findById(tableId)
                 .orElseThrow(() -> new ResourceNotFoundException("Table ID " + tableId + " not found"));
+
+        if (table.getRestaurant() == null || !table.getRestaurant().getId().equals(targetRestId)) {
+            throw new BadRequestException("Table ID " + tableId + " does not belong to your restaurant");
+        }
 
         table.setStatus(status);
 
@@ -169,27 +160,27 @@ public class WaiterService {
     }
 
     public List<OrderResponseDto> getReadyToServeOrders() {
-        return getReadyToServeOrders(null);
-    }
-
-    public List<OrderResponseDto> getReadyToServeOrders(Long restaurantId) {
-        Long targetRestId = resolveRestaurantId(restaurantId);
-        List<Order> orders;
-        if (targetRestId != null) {
-            orders = orderRepository.findByRestaurantIdAndStatusOrderByCreatedAtDesc(targetRestId, OrderStatus.READY);
-        } else {
-            orders = orderRepository.findByStatusOrderByCreatedAtDesc(OrderStatus.READY);
-        }
+        Long targetRestId = SecurityUtil.getRequiredRestaurantId();
+        List<Order> orders = orderRepository.findByRestaurantIdAndStatusOrderByCreatedAtDesc(targetRestId, OrderStatus.READY);
 
         return orders.stream()
                 .map(customerService::mapToOrderResponseDto)
                 .collect(Collectors.toList());
     }
 
+    public List<OrderResponseDto> getReadyToServeOrders(Long ignoredRestaurantId) {
+        return getReadyToServeOrders();
+    }
+
     @Transactional
     public OrderResponseDto markOrderServed(Long orderId) {
+        Long targetRestId = SecurityUtil.getRequiredRestaurantId();
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order ID " + orderId + " not found"));
+
+        if (order.getRestaurant() == null || !order.getRestaurant().getId().equals(targetRestId)) {
+            throw new BadRequestException("Order ID " + orderId + " does not belong to your restaurant");
+        }
 
         order.setStatus(OrderStatus.SERVED);
         Order saved = orderRepository.save(order);
@@ -198,8 +189,13 @@ public class WaiterService {
 
     @Transactional
     public TableSession checkoutAndLiberateTable(Long tableId) {
+        Long targetRestId = SecurityUtil.getRequiredRestaurantId();
         RestaurantTable table = tableRepository.findById(tableId)
                 .orElseThrow(() -> new ResourceNotFoundException("Table ID " + tableId + " not found"));
+
+        if (table.getRestaurant() == null || !table.getRestaurant().getId().equals(targetRestId)) {
+            throw new BadRequestException("Table ID " + tableId + " does not belong to your restaurant");
+        }
 
         List<TableSession> activeSessions = sessionRepository.findAllByTableIdAndStatusOrderByStartTimeDesc(tableId, SessionStatus.ACTIVE);
         TableSession primarySession = activeSessions.isEmpty() ? null : activeSessions.get(0);

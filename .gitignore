@@ -14,6 +14,8 @@ Thumbs.db
 # IDE & Editor Settings
 .idea/
 .vscode/
+.playwright-mcp/
+.impeccable/
 *.swp
 *.swo
 *.sublime-project
@@ -62,5 +64,3 @@ backend/target/
 *.tmp
 *.bak
 *.dump
-
-.playwright-mcp/

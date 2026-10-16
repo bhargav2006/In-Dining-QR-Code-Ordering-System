@@ -1,65 +1,140 @@
 package com.qr_restaurant.qr_restaurant_backend.security;
 
 import com.qr_restaurant.qr_restaurant_backend.model.enums.UserRole;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.stereotype.Component;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
-import java.util.UUID;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
 
+/**
+ * Service for generating, signing, and validating cryptographically secure JSON Web Tokens (JWT).
+ * Signs tokens with HMAC-SHA256 and embeds authenticated staff role and restaurant tenancy.
+ */
+@Component
 public class TokenProvider {
 
-    private static final String SECRET_KEY = "QR_RESTAURANT_SUPER_SECRET_KEY_FOR_TOKEN_GEN_2026";
+    private final SecretKey signingKey;
+    private final long expirationMs;
 
-    /**
-     * Generates a signed authentication token with payload and HMAC-SHA256 signature.
-     */
-    public static String generateToken(Long userId, String username, UserRole role) {
-        long expiryTime = System.currentTimeMillis() + (86400 * 1000L); // 24 hours
-        String payload = userId + ":" + username + ":" + role.name() + ":" + expiryTime + ":" + UUID.randomUUID().toString();
-        String encodedPayload = Base64.getUrlEncoder().encodeToString(payload.getBytes(StandardCharsets.UTF_8));
-        String signature = hmacSha256(encodedPayload, SECRET_KEY);
-        return encodedPayload + "." + signature;
+    public TokenProvider(
+            @Value("${jwt.secret:QR_RESTAURANT_SUPER_SECURE_JWT_SECRET_KEY_2026_MIN_256_BITS_LONG!}") String secret,
+            @Value("${jwt.expiration-ms:86400000}") long expirationMs) {
+
+        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        this.signingKey = Keys.hmacShaKeyFor(keyBytes);
+        this.expirationMs = expirationMs;
     }
 
     /**
-     * Validates token signature and expiration.
+     * Generates a signed JWT for an authenticated staff user.
      */
-    public static boolean validateToken(String token) {
-        if (token == null || !token.contains(".")) return false;
+    public String generateToken(Long userId, String username, UserRole role, Long restaurantId) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + expirationMs);
+
+        return Jwts.builder()
+                .subject(username)
+                .claim("userId", userId)
+                .claim("role", role.name())
+                .claim("restaurantId", restaurantId)
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(signingKey)
+                .compact();
+    }
+
+    /**
+     * Generates a signed JWT with custom expiration (useful for testing expired tokens).
+     */
+    public String generateTokenWithCustomExpiration(Long userId, String username, UserRole role, Long restaurantId, long expirationDeltaMs) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + expirationDeltaMs);
+
+        return Jwts.builder()
+                .subject(username)
+                .claim("userId", userId)
+                .claim("role", role.name())
+                .claim("restaurantId", restaurantId)
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(signingKey)
+                .compact();
+    }
+
+    /**
+     * Overload for backward compatibility where restaurantId might be null.
+     */
+    public String generateToken(Long userId, String username, UserRole role) {
+        return generateToken(userId, username, role, null);
+    }
+
+    /**
+     * Validates that the token signature is legitimate and the token is not expired.
+     */
+    public boolean validateToken(String token) {
+        if (token == null || token.isBlank()) {
+            return false;
+        }
         try {
-            String[] parts = token.split("\\.");
-            if (parts.length != 2) return false;
-
-            String payloadEncoded = parts[0];
-            String signature = parts[1];
-
-            String expectedSig = hmacSha256(payloadEncoded, SECRET_KEY);
-            if (!expectedSig.equals(signature)) return false;
-
-            String payload = new String(Base64.getUrlDecoder().decode(payloadEncoded), StandardCharsets.UTF_8);
-            String[] fields = payload.split(":");
-            if (fields.length < 4) return false;
-
-            long expiryTime = Long.parseLong(fields[3]);
-            return System.currentTimeMillis() < expiryTime;
-        } catch (Exception e) {
+            Jwts.parser()
+                    .verifyWith(signingKey)
+                    .build()
+                    .parseSignedClaims(token.trim());
+            return true;
+        } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
     }
 
-    private static String hmacSha256(String data, String key) {
-        try {
-            Mac mac = Mac.getInstance("HmacSHA256");
-            SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-            mac.init(secretKey);
-            byte[] hmacData = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-            return Base64.getUrlEncoder().withoutPadding().encodeToString(hmacData);
-        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
-            throw new RuntimeException("Error calculating HMAC-SHA256", e);
-        }
+    /**
+     * Parses claims from a verified JWT token.
+     */
+    public Claims parseClaims(String token) {
+        return Jwts.parser()
+                .verifyWith(signingKey)
+                .build()
+                .parseSignedClaims(token.trim())
+                .getPayload();
+    }
+
+    /**
+     * Constructs a Spring Security Authentication object containing the verified StaffPrincipal.
+     */
+    public Authentication getAuthentication(String token) {
+        Claims claims = parseClaims(token);
+
+        String username = claims.getSubject();
+        Object rawUserId = claims.get("userId");
+        Long userId = rawUserId instanceof Number ? ((Number) rawUserId).longValue() : null;
+
+        String roleStr = claims.get("role", String.class);
+        UserRole role = roleStr != null ? UserRole.valueOf(roleStr) : UserRole.WAITER;
+
+        Object rawRestId = claims.get("restaurantId");
+        Long restaurantId = rawRestId instanceof Number ? ((Number) rawRestId).longValue() : null;
+
+        StaffPrincipal principal = StaffPrincipal.builder()
+                .userId(userId)
+                .username(username)
+                .role(role)
+                .restaurantId(restaurantId)
+                .build();
+
+        List<SimpleGrantedAuthority> authorities = Collections.singletonList(
+                new SimpleGrantedAuthority("ROLE_" + role.name())
+        );
+
+        return new UsernamePasswordAuthenticationToken(principal, token, authorities);
     }
 }

@@ -28,21 +28,27 @@ public class AuthService {
     private final CategoryRepository categoryRepository;
     private final DishRepository dishRepository;
     private final RestaurantTableRepository tableRepository;
+    private final TokenProvider tokenProvider;
 
     public AuthResponseDto login(LoginRequestDto request) {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new BadRequestException("Invalid username or password"));
 
-        boolean isPasswordValid = PasswordEncoderUtil.matches(request.getPassword(), user.getPassword())
-                || user.getPassword().equals(request.getPassword()); // Fallback for backwards compatibility
-
+        boolean isPasswordValid = PasswordEncoderUtil.matches(request.getPassword(), user.getPassword());
         if (!isPasswordValid) {
             throw new BadRequestException("Invalid username or password");
         }
 
-        String authToken = TokenProvider.generateToken(user.getId(), user.getUsername(), user.getRole());
+        // Transparently upgrade legacy SHA-256 password hash to BCrypt on successful login
+        if (PasswordEncoderUtil.isLegacyHash(user.getPassword())) {
+            user.setPassword(PasswordEncoderUtil.hashPassword(request.getPassword()));
+            userRepository.save(user);
+        }
 
         Restaurant r = user.getRestaurant();
+        Long restaurantId = (r != null) ? r.getId() : null;
+
+        String authToken = tokenProvider.generateToken(user.getId(), user.getUsername(), user.getRole(), restaurantId);
 
         return AuthResponseDto.builder()
                 .id(user.getId())
@@ -51,7 +57,7 @@ public class AuthService {
                 .email(user.getEmail())
                 .role(user.getRole())
                 .token(authToken)
-                .restaurantId(r != null ? r.getId() : null)
+                .restaurantId(restaurantId)
                 .restaurantName(r != null ? r.getName() : null)
                 .restaurantSlug(r != null ? r.getSlug() : null)
                 .build();
@@ -102,7 +108,7 @@ public class AuthService {
         // 3. Seed starter categories, dishes & tables for this restaurant
         seedInitialRestaurantData(restaurant);
 
-        String authToken = TokenProvider.generateToken(user.getId(), user.getUsername(), user.getRole());
+        String authToken = tokenProvider.generateToken(user.getId(), user.getUsername(), user.getRole(), restaurant.getId());
 
         return AuthResponseDto.builder()
                 .id(user.getId())

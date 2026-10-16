@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { CheckCircle2, Printer, Home, Bell, Sparkles, Heart, UtensilsCrossed } from 'lucide-react';
 import { customerApi } from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 export default function PaymentSuccess() {
+  const { toast } = useToast();
   const location = useLocation();
   const navigate = useNavigate();
   const { tableNumber: paramTable } = useParams();
@@ -66,12 +68,13 @@ export default function PaymentSuccess() {
         const sessObj = JSON.parse(savedSession);
         await customerApi.requestAssistance(sessObj.sessionToken, 'OTHER', 'Customer requested help at checkout page');
         setAssistanceSent(true);
+        toast.success('Floor waiter notified for Table #' + tNum);
         setTimeout(() => setAssistanceSent(false), 5000);
       } catch (err) {
-        alert('Could not notify waiter: ' + err.message);
+        toast.error('Could not notify waiter: ' + err.message);
       }
     } else {
-      alert('Waiter notified for Table #' + tNum);
+      toast.info('Waiter notified for Table #' + tNum);
     }
   };
 

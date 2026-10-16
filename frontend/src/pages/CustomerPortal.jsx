@@ -3,10 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Search, ShoppingBag, Plus, Minus, Bell, CheckCircle2, Clock, Utensils, X, Flame, AlertCircle, CreditCard, Star, PhoneCall, Printer, DollarSign, QrCode, Lock, RefreshCw, Store } from 'lucide-react';
 import { customerApi } from '../services/api';
 import { getDishImage, handleImageError } from '../utils/imageUtils';
+import ThemeToggle from '../components/ThemeToggle';
+import { useToast } from '../context/ToastContext';
 
 export default function CustomerPortal() {
   const { restaurantSlug, tableNumber } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const searchParams = new URLSearchParams(window.location.search);
   const restaurantId = searchParams.get('restaurantId');
   const tNum = parseInt(tableNumber || '1', 10);
@@ -141,7 +144,7 @@ export default function CustomerPortal() {
         localStorage.removeItem(`customer_session_tbl_${tNum}`);
         localStorage.removeItem(`customer_token_tbl_${tNum}`);
         sessionStorage.removeItem('currentSession');
-        alert('Invalid session token for Table #' + tNum);
+        toast.error('Invalid session token for Table #' + tNum);
         return;
       }
 
@@ -152,7 +155,7 @@ export default function CustomerPortal() {
       localStorage.setItem(`customer_token_tbl_${tNum}`, resultSess.sessionToken);
       window.location.reload();
     } catch (e) {
-      alert('Error connecting to session: ' + e.message);
+      toast.error('Error connecting to session: ' + e.message);
     } finally {
       setIsConnecting(false);
     }
@@ -197,8 +200,9 @@ export default function CustomerPortal() {
       await customerApi.cancelOrder(orderId, session.sessionToken);
       const updatedOrders = await customerApi.getSessionOrders(session.sessionToken);
       setMyOrders(updatedOrders);
+      toast.success('Order cancelled successfully');
     } catch (err) {
-      alert('Failed to cancel order: ' + err.message);
+      toast.error('Failed to cancel order: ' + err.message);
     }
   };
 
@@ -274,8 +278,9 @@ export default function CustomerPortal() {
       setCart([]);
       setIsCartOpen(false);
       setIsOrdersOpen(true);
+      toast.success('Order placed successfully! Chef notified.');
     } catch (err) {
-      alert('Failed to place order: ' + err.message);
+      toast.error('Failed to place order: ' + err.message);
     } finally {
       setIsPlacingOrder(false);
     }
@@ -287,12 +292,13 @@ export default function CustomerPortal() {
     try {
       await customerApi.requestAssistance(session.sessionToken, assistanceType, assistanceNote);
       setAssistanceSuccess(true);
+      toast.success('Waiter notified! Floor staff is on the way.');
       setTimeout(() => {
         setAssistanceSuccess(false);
         setIsAssistanceOpen(false);
       }, 2000);
     } catch (err) {
-      alert('Failed to request assistance: ' + err.message);
+      toast.error('Failed to request assistance: ' + err.message);
     } finally {
       setIsSendingAssistance(false);
     }
@@ -302,7 +308,7 @@ export default function CustomerPortal() {
   const handleProcessPayment = async () => {
     if (!session) return;
     if (!myOrders || myOrders.length === 0) {
-      alert('Cannot process payment: Your order history is empty! Please place an order first.');
+      toast.warning('Cannot process payment: Your order history is empty! Please place an order first.');
       return;
     }
     setLoadingPayment(true);
@@ -325,12 +331,13 @@ export default function CustomerPortal() {
 
       if (paymentMethod === 'CASH') {
         setCashRequested(true);
+        toast.info('Cash payment requested. Waiter notified to collect at your table.');
       } else {
         setIsPayBillOpen(false);
         navigate(`/table/${tNum}/success`, { state: { receipt: resultReceipt } });
       }
     } catch (err) {
-      alert('Payment processing error: ' + err.message);
+      toast.error('Payment processing error: ' + err.message);
     } finally {
       setLoadingPayment(false);
     }
@@ -405,7 +412,7 @@ export default function CustomerPortal() {
             <Lock size={48} />
           </div>
 
-          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#fff', marginBottom: '0.6rem' }}>
+          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '0.6rem' }}>
             Table #{tNum} is Currently Occupied
           </h2>
 
@@ -415,8 +422,8 @@ export default function CustomerPortal() {
           </p>
 
           {localStorage.getItem(`customer_token_tbl_${tNum}`) && (
-            <div style={{ background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.4)', padding: '1rem', borderRadius: '14px', marginBottom: '1.5rem' }}>
-              <span style={{ fontSize: '0.85rem', color: '#34d399', fontWeight: 700, display: 'block', marginBottom: '0.5rem' }}>
+            <div style={{ background: 'var(--bg-glass)', border: '1px solid var(--border-glass)', padding: '1rem', borderRadius: '14px', marginBottom: '1.5rem' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 700, display: 'block', marginBottom: '0.5rem' }}>
                 Saved Session Found on This Device!
               </span>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.8rem' }}>
@@ -432,8 +439,8 @@ export default function CustomerPortal() {
             </div>
           )}
 
-          <div style={{ background: 'rgba(255,255,255,0.04)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-glass)', marginBottom: '1.5rem' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', color: '#38bdf8', fontWeight: 700, marginBottom: '0.8rem' }}>
+          <div style={{ background: 'var(--bg-glass)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-glass)', marginBottom: '1.5rem' }}>
+            <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 700, marginBottom: '0.8rem' }}>
               Dining Together? Connect to Table Session
             </label>
             <div style={{ display: 'flex', gap: '0.6rem' }}>
@@ -445,10 +452,10 @@ export default function CustomerPortal() {
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid var(--border-glass)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--input-border)',
                   borderRadius: '8px',
-                  color: '#fff',
+                  color: 'var(--text-main)',
                   fontSize: '0.9rem',
                   textTransform: 'uppercase'
                 }}
@@ -501,7 +508,7 @@ export default function CustomerPortal() {
             T-{tNum}
           </div>
           <div>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               Table #{tNum}
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px #10b981', display: 'inline-block' }} />
             </h2>
@@ -525,7 +532,7 @@ export default function CustomerPortal() {
           <button
             onClick={async () => {
               if (!myOrders || myOrders.length === 0) {
-                alert('⚠️ No Active Orders Found!\n\nYour order history is currently empty. Please select items from the menu and place an order first before paying the bill.');
+                toast.warning('No active orders found. Please add items to your cart and place an order first before paying the bill.');
                 return;
               }
               if (!completedReceipt && session?.sessionToken) {
@@ -555,6 +562,8 @@ export default function CustomerPortal() {
           <button onClick={() => setIsAssistanceOpen(true)} className="btn-secondary" style={{ flex: '1 1 auto', justifyContent: 'center', padding: '0.65rem 0.85rem', fontSize: '0.85rem', whiteSpace: 'nowrap', background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', borderColor: 'rgba(245, 158, 11, 0.3)' }}>
             <Bell size={16} /> Call Waiter
           </button>
+
+          <ThemeToggle />
         </div>
       </div>
 
@@ -562,7 +571,7 @@ export default function CustomerPortal() {
       <div style={{
         position: 'relative',
         display: 'flex',
-        background: 'rgba(15, 23, 42, 0.7)',
+        background: 'var(--bg-glass)',
         padding: '0.35rem',
         borderRadius: '16px',
         border: '1px solid var(--border-glass)',
@@ -692,16 +701,16 @@ export default function CustomerPortal() {
             placeholder="Search delicious dishes..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3rem', background: 'rgba(30, 41, 59, 0.7)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-md)', color: '#fff', fontSize: '0.95rem', outline: 'none' }}
+            style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3rem', background: 'var(--input-bg)', border: '1px solid var(--input-border)', borderRadius: 'var(--radius-md)', color: 'var(--text-main)', fontSize: '0.95rem', outline: 'none' }}
           />
         </div>
 
         <div style={{ display: 'flex', gap: '0.6rem', overflowX: 'auto', paddingBottom: '0.4rem' }}>
-          <button onClick={() => setSelectedCategory(null)} style={{ padding: '0.6rem 1.2rem', borderRadius: '9999px', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap', background: !selectedCategory ? '#10b981' : 'rgba(255, 255, 255, 0.05)', color: !selectedCategory ? '#fff' : 'var(--text-muted)', border: !selectedCategory ? '1px solid #10b981' : '1px solid var(--border-glass)' }}>
+          <button onClick={() => setSelectedCategory(null)} style={{ padding: '0.6rem 1.2rem', borderRadius: '9999px', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap', background: !selectedCategory ? '#10b981' : 'var(--btn-secondary-bg)', color: !selectedCategory ? '#fff' : 'var(--text-muted)', border: !selectedCategory ? '1px solid #10b981' : '1px solid var(--border-glass)' }}>
             All Categories
           </button>
           {categories.map(cat => (
-            <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} style={{ padding: '0.6rem 1.2rem', borderRadius: '9999px', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap', background: selectedCategory === cat.id ? '#10b981' : 'rgba(255, 255, 255, 0.05)', color: selectedCategory === cat.id ? '#fff' : 'var(--text-muted)', border: selectedCategory === cat.id ? '1px solid #10b981' : '1px solid var(--border-glass)' }}>
+            <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} style={{ padding: '0.6rem 1.2rem', borderRadius: '9999px', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap', background: selectedCategory === cat.id ? '#10b981' : 'var(--btn-secondary-bg)', color: selectedCategory === cat.id ? '#fff' : 'var(--text-muted)', border: selectedCategory === cat.id ? '1px solid #10b981' : '1px solid var(--border-glass)' }}>
               {cat.name}
             </button>
           ))}
@@ -741,7 +750,7 @@ export default function CustomerPortal() {
                   position: 'absolute',
                   top: '0.75rem',
                   left: '0.75rem',
-                  background: 'rgba(15, 23, 42, 0.8)',
+                  background: 'var(--bg-card)',
                   backdropFilter: 'blur(8px)',
                   border: checkIsVeg(dish) ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid rgba(239, 68, 68, 0.5)',
                   padding: '0.25rem 0.55rem',
@@ -773,7 +782,7 @@ export default function CustomerPortal() {
 
               <div style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff', marginBottom: '0.4rem' }}>{dish.name}</h3>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '0.4rem' }}>{dish.name}</h3>
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.4, marginBottom: '1rem' }}>{dish.description}</p>
                 </div>
 
@@ -803,21 +812,21 @@ export default function CustomerPortal() {
           <div className="glass-panel animate-fade-in" style={{ maxWidth: '450px', width: '100%', padding: '1.8rem', position: 'relative' }}>
             <button onClick={() => setCustomizingDish(null)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', color: 'var(--text-muted)' }}><X size={20} /></button>
 
-            <h3 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#fff', marginBottom: '0.3rem' }}>{customizingDish.name}</h3>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '0.3rem' }}>{customizingDish.name}</h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.2rem' }}>{customizingDish.description}</p>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.05)', padding: '0.75rem 1rem', borderRadius: '12px', marginBottom: '1.2rem' }}>
-              <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#fff' }}>Quantity</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--btn-secondary-bg)', padding: '0.75rem 1rem', borderRadius: '12px', marginBottom: '1.2rem' }}>
+              <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-heading)' }}>Quantity</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="btn-secondary" style={{ padding: '0.3rem 0.6rem' }}><Minus size={14} /></button>
-                <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>{quantity}</span>
+                <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-heading)' }}>{quantity}</span>
                 <button onClick={() => setQuantity(quantity + 1)} className="btn-secondary" style={{ padding: '0.3rem 0.6rem' }}><Plus size={14} /></button>
               </div>
             </div>
 
             <div style={{ marginBottom: '1.5rem' }}>
               <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem', fontWeight: 600 }}>Special Instructions / Allergies</label>
-              <textarea placeholder="e.g. Less spicy, no onions, extra dressing..." value={specialInstructions} onChange={(e) => setSpecialInstructions(e.target.value)} style={{ width: '100%', height: '80px', padding: '0.75rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', borderRadius: '8px', color: '#fff', fontSize: '0.85rem', outline: 'none' }} />
+              <textarea placeholder="e.g. Less spicy, no onions, extra dressing..." value={specialInstructions} onChange={(e) => setSpecialInstructions(e.target.value)} style={{ width: '100%', height: '80px', padding: '0.75rem', background: 'var(--input-bg)', border: '1px solid var(--input-border)', borderRadius: '8px', color: 'var(--text-main)', fontSize: '0.85rem', outline: 'none' }} />
             </div>
 
             <button onClick={handleAddToCart} className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Add to Cart • ${(customizingDish.price * quantity).toFixed(2)}</button>
@@ -830,15 +839,15 @@ export default function CustomerPortal() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', justifyContent: 'flex-end' }}>
           <div className="glass-panel" style={{ width: '100%', maxWidth: '420px', height: '100%', borderRadius: 0, padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border-glass)' }}>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#fff' }}>Your Table Cart</h3>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-heading)' }}>Your Table Cart</h3>
               <button onClick={() => setIsCartOpen(false)} style={{ background: 'none', color: 'var(--text-muted)' }}><X size={20} /></button>
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {cart.map((item, idx) => (
-                <div key={idx} style={{ background: 'rgba(255,255,255,0.04)', padding: '0.85rem', borderRadius: '12px', border: '1px solid var(--border-glass)' }}>
+                <div key={idx} style={{ background: 'var(--btn-secondary-bg)', padding: '0.85rem', borderRadius: '12px', border: '1px solid var(--border-glass)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-                    <span style={{ fontWeight: 700, color: '#fff' }}>{item.dish.name} x{item.quantity}</span>
+                    <span style={{ fontWeight: 700, color: 'var(--text-heading)' }}>{item.dish.name} x{item.quantity}</span>
                     <span style={{ fontWeight: 700, color: '#10b981' }}>${(item.dish.price * item.quantity).toFixed(2)}</span>
                   </div>
                   {item.specialInstructions && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Note: {item.specialInstructions}</span>}
@@ -849,7 +858,7 @@ export default function CustomerPortal() {
             <div style={{ paddingTop: '1rem', borderTop: '1px solid var(--border-glass)', marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: '0.9rem' }}><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: '0.9rem' }}><span>Tax (5%)</span><span>${tax.toFixed(2)}</span></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', fontSize: '1.2rem', fontWeight: 800, marginTop: '0.3rem' }}><span>Total</span><span style={{ color: '#10b981' }}>${grandTotal.toFixed(2)}</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-heading)', fontSize: '1.2rem', fontWeight: 800, marginTop: '0.3rem' }}><span>Total</span><span style={{ color: '#10b981' }}>${grandTotal.toFixed(2)}</span></div>
 
               <button
                 onClick={handlePlaceOrder}
@@ -888,27 +897,27 @@ export default function CustomerPortal() {
                   <div style={{ display: 'inline-flex', padding: '0.8rem', background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', borderRadius: '12px', marginBottom: '0.5rem' }}>
                     <CreditCard size={32} />
                   </div>
-                  <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff' }}>Table #{tNum} Bill & Checkout</h3>
+                  <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-heading)' }}>Table #{tNum} Bill & Checkout</h3>
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Generate digital tax invoice and complete payment</p>
                 </div>
 
                 {/* Optional Customer Details */}
-                <div style={{ background: 'rgba(255,255,255,0.04)', padding: '1rem', borderRadius: '12px', marginBottom: '1.2rem', border: '1px solid var(--border-glass)' }}>
+                <div style={{ background: 'var(--btn-secondary-bg)', padding: '1rem', borderRadius: '12px', marginBottom: '1.2rem', border: '1px solid var(--border-glass)' }}>
                   <span style={{ fontSize: '0.8rem', color: '#38bdf8', fontWeight: 700, display: 'block', marginBottom: '0.8rem' }}>
                     Customer Details (Optional for Digital Receipt)
                   </span>
                   
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                    <input type="text" placeholder="Full Name (Optional)" value={customerName} onChange={(e) => setCustomerName(e.target.value)} style={{ padding: '0.65rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', borderRadius: '6px', color: '#fff', fontSize: '0.85rem' }} />
+                    <input type="text" placeholder="Full Name (Optional)" value={customerName} onChange={(e) => setCustomerName(e.target.value)} style={{ padding: '0.65rem', background: 'var(--input-bg)', border: '1px solid var(--input-border)', borderRadius: '6px', color: 'var(--text-main)', fontSize: '0.85rem' }} />
                     <div style={{ display: 'flex', gap: '0.6rem' }}>
-                      <input type="text" placeholder="Phone Number (Optional)" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} style={{ flex: 1, padding: '0.65rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', borderRadius: '6px', color: '#fff', fontSize: '0.85rem' }} />
-                      <input type="email" placeholder="Email Address (Optional)" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} style={{ flex: 1, padding: '0.65rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', borderRadius: '6px', color: '#fff', fontSize: '0.85rem' }} />
+                      <input type="text" placeholder="Phone Number (Optional)" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} style={{ flex: 1, padding: '0.65rem', background: 'var(--input-bg)', border: '1px solid var(--input-border)', borderRadius: '6px', color: 'var(--text-main)', fontSize: '0.85rem' }} />
+                      <input type="email" placeholder="Email Address (Optional)" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} style={{ flex: 1, padding: '0.65rem', background: 'var(--input-bg)', border: '1px solid var(--input-border)', borderRadius: '6px', color: 'var(--text-main)', fontSize: '0.85rem' }} />
                     </div>
                   </div>
                 </div>
 
                 {/* 5-Star Rating & Review */}
-                <div style={{ background: 'rgba(255,255,255,0.04)', padding: '1rem', borderRadius: '12px', marginBottom: '1.2rem', border: '1px solid var(--border-glass)' }}>
+                <div style={{ background: 'var(--btn-secondary-bg)', padding: '1rem', borderRadius: '12px', marginBottom: '1.2rem', border: '1px solid var(--border-glass)' }}>
                   <span style={{ fontSize: '0.8rem', color: '#fbbf24', fontWeight: 700, display: 'block', marginBottom: '0.5rem' }}>
                     Rate Your Dining Experience
                   </span>
@@ -921,20 +930,20 @@ export default function CustomerPortal() {
                     ))}
                   </div>
 
-                  <input type="text" placeholder="Write feedback or review comments (Optional)..." value={reviewComments} onChange={(e) => setReviewComments(e.target.value)} style={{ width: '100%', padding: '0.65rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', borderRadius: '6px', color: '#fff', fontSize: '0.85rem' }} />
+                  <input type="text" placeholder="Write feedback or review comments (Optional)..." value={reviewComments} onChange={(e) => setReviewComments(e.target.value)} style={{ width: '100%', padding: '0.65rem', background: 'var(--input-bg)', border: '1px solid var(--input-border)', borderRadius: '6px', color: 'var(--text-main)', fontSize: '0.85rem' }} />
                 </div>
 
                 {/* Payment Method Selector */}
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: 700 }}>Select Payment Mode</label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.6rem' }}>
-                    <button onClick={() => setPaymentMethod('CARD')} style={{ padding: '0.75rem 0.5rem', borderRadius: '8px', border: paymentMethod === 'CARD' ? '2px solid #10b981' : '1px solid var(--border-glass)', background: paymentMethod === 'CARD' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.05)', color: '#fff', fontWeight: 700, fontSize: '0.85rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}>
+                    <button onClick={() => setPaymentMethod('CARD')} style={{ padding: '0.75rem 0.5rem', borderRadius: '8px', border: paymentMethod === 'CARD' ? '2px solid #10b981' : '1px solid var(--border-glass)', background: paymentMethod === 'CARD' ? 'rgba(16, 185, 129, 0.2)' : 'var(--btn-secondary-bg)', color: 'var(--text-main)', fontWeight: 700, fontSize: '0.85rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}>
                       <CreditCard size={18} /> Card
                     </button>
-                    <button onClick={() => setPaymentMethod('UPI_QR')} style={{ padding: '0.75rem 0.5rem', borderRadius: '8px', border: paymentMethod === 'UPI_QR' ? '2px solid #38bdf8' : '1px solid var(--border-glass)', background: paymentMethod === 'UPI_QR' ? 'rgba(6, 182, 212, 0.2)' : 'rgba(255,255,255,0.05)', color: '#fff', fontWeight: 700, fontSize: '0.85rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}>
+                    <button onClick={() => setPaymentMethod('UPI_QR')} style={{ padding: '0.75rem 0.5rem', borderRadius: '8px', border: paymentMethod === 'UPI_QR' ? '2px solid #38bdf8' : '1px solid var(--border-glass)', background: paymentMethod === 'UPI_QR' ? 'rgba(6, 182, 212, 0.2)' : 'var(--btn-secondary-bg)', color: 'var(--text-main)', fontWeight: 700, fontSize: '0.85rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}>
                       <QrCode size={18} /> UPI / QR
                     </button>
-                    <button onClick={() => setPaymentMethod('CASH')} style={{ padding: '0.75rem 0.5rem', borderRadius: '8px', border: paymentMethod === 'CASH' ? '2px solid #f59e0b' : '1px solid var(--border-glass)', background: paymentMethod === 'CASH' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255,255,255,0.05)', color: '#fff', fontWeight: 700, fontSize: '0.85rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}>
+                    <button onClick={() => setPaymentMethod('CASH')} style={{ padding: '0.75rem 0.5rem', borderRadius: '8px', border: paymentMethod === 'CASH' ? '2px solid #f59e0b' : '1px solid var(--border-glass)', background: paymentMethod === 'CASH' ? 'rgba(245, 158, 11, 0.2)' : 'var(--btn-secondary-bg)', color: 'var(--text-main)', fontWeight: 700, fontSize: '0.85rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}>
                       <DollarSign size={18} /> Cash
                     </button>
                   </div>
@@ -954,7 +963,7 @@ export default function CustomerPortal() {
                 {cashRequested ? (
                   <div style={{ padding: '1.5rem', background: 'rgba(245, 158, 11, 0.15)', borderRadius: '16px', border: '1px solid rgba(245, 158, 11, 0.4)', marginBottom: '1.5rem' }}>
                     <Bell size={42} style={{ color: '#fbbf24', margin: '0 auto 0.5rem' }} />
-                    <h4 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fff' }}>Waiter Dispatched for Cash Collection!</h4>
+                    <h4 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-heading)' }}>Waiter Dispatched for Cash Collection!</h4>
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.4rem', lineHeight: 1.5 }}>
                       A waiter has been notified to arrive at <strong>Table #{tNum}</strong> to collect your cash payment of <strong>${completedReceipt.totalAmount?.toFixed(2)}</strong>.
                     </p>
@@ -965,7 +974,7 @@ export default function CustomerPortal() {
                 ) : (
                   <div style={{ padding: '1rem', background: 'rgba(16, 185, 129, 0.15)', borderRadius: '16px', border: '1px solid rgba(16, 185, 129, 0.4)', marginBottom: '1.5rem' }}>
                     <CheckCircle2 size={42} style={{ color: '#10b981', margin: '0 auto 0.4rem' }} />
-                    <h4 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fff' }}>Payment Successful!</h4>
+                    <h4 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-heading)' }}>Payment Successful!</h4>
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Thank you for dining with us!</p>
                   </div>
                 )}
@@ -1037,16 +1046,16 @@ export default function CustomerPortal() {
           <div className="glass-panel animate-fade-in" style={{ maxWidth: '550px', width: '100%', maxHeight: '85vh', padding: '1.8rem', display: 'flex', flexDirection: 'column', position: 'relative' }}>
             <button onClick={() => setIsOrdersOpen(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', color: 'var(--text-muted)' }}><X size={20} /></button>
 
-            <h3 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#fff', marginBottom: '1rem' }}>Table #{tNum} Order History</h3>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '1rem' }}>Table #{tNum} Order History</h3>
 
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {myOrders.length === 0 ? (
                 <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>No orders placed yet for this table session.</p>
               ) : (
                 myOrders.map(order => (
-                  <div key={order.orderId} style={{ background: 'rgba(255,255,255,0.04)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-glass)' }}>
+                  <div key={order.orderId} style={{ background: 'var(--btn-secondary-bg)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-glass)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
-                      <span style={{ fontWeight: 800, color: '#fff' }}>{order.orderNumber}</span>
+                      <span style={{ fontWeight: 800, color: 'var(--text-heading)' }}>{order.orderNumber}</span>
                       <span className={`badge badge-${order.status?.toLowerCase()}`}>{order.status}</span>
                     </div>
 
@@ -1092,7 +1101,7 @@ export default function CustomerPortal() {
           <div className="glass-panel animate-fade-in" style={{ maxWidth: '420px', width: '100%', padding: '1.8rem', position: 'relative' }}>
             <button onClick={() => setIsAssistanceOpen(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', color: 'var(--text-muted)' }}><X size={20} /></button>
 
-            <h3 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#fff', marginBottom: '0.5rem' }}>Call Table Service</h3>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '0.5rem' }}>Call Table Service</h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.2rem' }}>Request instant assistance to Table #{tNum}</p>
 
             {assistanceSuccess ? (
@@ -1105,17 +1114,17 @@ export default function CustomerPortal() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem', fontWeight: 600 }}>Select Request Type</label>
-                  <select value={assistanceType} onChange={(e) => setAssistanceType(e.target.value)} style={{ width: '100%', padding: '0.75rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', borderRadius: '8px', color: '#fff', outline: 'none' }}>
-                    <option value="WATER" style={{ background: '#0f172a' }}>💧 Water Refill</option>
-                    <option value="BILL_REQUEST" style={{ background: '#0f172a' }}>💳 Request Final Bill</option>
-                    <option value="WAITER_HELP" style={{ background: '#0f172a' }}>🙋 Waiter Assistance</option>
-                    <option value="CLEAN_TABLE" style={{ background: '#0f172a' }}>🧹 Clean Table</option>
+                  <select value={assistanceType} onChange={(e) => setAssistanceType(e.target.value)} style={{ width: '100%', padding: '0.75rem', background: 'var(--input-bg)', border: '1px solid var(--input-border)', borderRadius: '8px', color: 'var(--text-main)', outline: 'none' }}>
+                    <option value="WATER">💧 Water Refill</option>
+                    <option value="BILL_REQUEST">💳 Request Final Bill</option>
+                    <option value="WAITER_HELP">🙋 Waiter Assistance</option>
+                    <option value="CLEAN_TABLE">🧹 Clean Table</option>
                   </select>
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem', fontWeight: 600 }}>Note (Optional)</label>
-                  <input type="text" placeholder="e.g. Extra napkins please..." value={assistanceNote} onChange={(e) => setAssistanceNote(e.target.value)} style={{ width: '100%', padding: '0.75rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', borderRadius: '8px', color: '#fff', outline: 'none' }} />
+                  <input type="text" placeholder="e.g. Extra napkins please..." value={assistanceNote} onChange={(e) => setAssistanceNote(e.target.value)} style={{ width: '100%', padding: '0.75rem', background: 'var(--input-bg)', border: '1px solid var(--input-border)', borderRadius: '8px', color: 'var(--text-main)', outline: 'none' }} />
                 </div>
 
                 <button

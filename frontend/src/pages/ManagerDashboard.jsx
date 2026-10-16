@@ -3,8 +3,10 @@ import { LayoutDashboard, DollarSign, ShoppingBag, Table, ToggleLeft, ToggleRigh
 import { QRCodeSVG } from 'qrcode.react';
 import { managerApi } from '../services/api';
 import { getFrontendUrl } from '../utils/url';
+import { useToast } from '../context/ToastContext';
 
 export default function ManagerDashboard({ user, onOpenLogin }) {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('analytics'); // 'analytics', 'dishes', 'categories', 'tables'
   const [analytics, setAnalytics] = useState(null);
   const [dishes, setDishes] = useState([]);
@@ -25,14 +27,14 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
   const [copiedLink, setCopiedLink] = useState(false);
 
   const loadAll = async () => {
+    if (!user || user.role !== 'ADMIN') return;
     try {
-      const restId = user?.restaurantId;
       const [stats, dishList, catList, tblList, ordList] = await Promise.all([
-        managerApi.getDashboard(restId),
-        managerApi.getDishes(restId),
-        managerApi.getCategories(restId),
-        managerApi.getTables(restId),
-        managerApi.getAllOrders(restId),
+        managerApi.getDashboard(),
+        managerApi.getDishes(),
+        managerApi.getCategories(),
+        managerApi.getTables(),
+        managerApi.getAllOrders(),
       ]);
 
       setAnalytics(stats);
@@ -46,7 +48,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && user.role === 'ADMIN') {
       loadAll();
     }
   }, [user]);
@@ -55,11 +57,12 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
   const handleSaveDish = async (e) => {
     e.preventDefault();
     try {
-      await managerApi.saveDish(editingDish, user?.restaurantId);
+      await managerApi.saveDish(editingDish);
       setEditingDish(null);
       loadAll();
+      toast.success('Dish saved successfully');
     } catch (err) {
-      alert('Error saving dish: ' + err.message);
+      toast.error('Error saving dish: ' + err.message);
     }
   };
 
@@ -67,8 +70,9 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
     try {
       await managerApi.toggleAvailability(id);
       loadAll();
+      toast.info('Dish availability updated');
     } catch (err) {
-      alert('Failed to toggle availability: ' + err.message);
+      toast.error('Failed to toggle availability: ' + err.message);
     }
   };
 
@@ -77,8 +81,9 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
     try {
       await managerApi.deleteDish(id);
       loadAll();
+      toast.success('Dish deleted successfully');
     } catch (err) {
-      alert('Failed to delete dish: ' + err.message);
+      toast.error('Failed to delete dish: ' + err.message);
     }
   };
 
@@ -86,11 +91,12 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
   const handleSaveCategory = async (e) => {
     e.preventDefault();
     try {
-      await managerApi.saveCategory(editingCategory, user?.restaurantId);
+      await managerApi.saveCategory(editingCategory);
       setEditingCategory(null);
       loadAll();
+      toast.success('Category saved successfully');
     } catch (err) {
-      alert('Error saving category: ' + err.message);
+      toast.error('Error saving category: ' + err.message);
     }
   };
 
@@ -99,8 +105,9 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
     try {
       await managerApi.deleteCategory(id);
       loadAll();
+      toast.success('Category deleted successfully');
     } catch (err) {
-      alert('Error deleting category: ' + err.message);
+      toast.error('Error deleting category: ' + err.message);
     }
   };
 
@@ -108,11 +115,12 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
   const handleSaveTable = async (e) => {
     e.preventDefault();
     try {
-      await managerApi.saveTable(editingTable, user?.restaurantId);
+      await managerApi.saveTable(editingTable);
       setEditingTable(null);
       loadAll();
+      toast.success('Dining table saved successfully');
     } catch (err) {
-      alert('Error creating table: ' + err.message);
+      toast.error('Error creating table: ' + err.message);
     }
   };
 
@@ -120,8 +128,9 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
     try {
       await managerApi.regenerateQr(id);
       loadAll();
+      toast.success('Table QR code refreshed with new session key');
     } catch (err) {
-      alert('Error regenerating QR: ' + err.message);
+      toast.error('Error regenerating QR: ' + err.message);
     }
   };
 
@@ -130,8 +139,9 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
     try {
       await managerApi.deleteTable(id);
       loadAll();
+      toast.success('Table deleted successfully');
     } catch (err) {
-      alert('Error deleting table: ' + err.message);
+      toast.error('Error deleting table: ' + err.message);
     }
   };
 
@@ -151,7 +161,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
             <ShieldAlert size={48} />
           </div>
 
-          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#fff', marginBottom: '0.6rem' }}>
+          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '0.6rem' }}>
             Manager Administration Restricted
           </h2>
 
@@ -165,6 +175,42 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
             style={{ width: '100%', justifyContent: 'center', padding: '0.9rem 1.5rem', fontSize: '1rem', background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' }}
           >
             <Lock size={18} /> Staff Login to Access Manager Portal
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (user.role !== 'ADMIN') {
+    return (
+      <div style={{ maxWidth: '600px', margin: '4rem auto', padding: '1rem' }}>
+        <div className="glass-panel animate-fade-in" style={{ padding: '2.5rem 2rem', textAlign: 'center' }}>
+          <div style={{
+            display: 'inline-flex',
+            padding: '1.2rem',
+            background: 'rgba(239, 68, 68, 0.15)',
+            color: '#f87171',
+            borderRadius: '20px',
+            marginBottom: '1.2rem',
+            border: '1px solid rgba(239, 68, 68, 0.3)'
+          }}>
+            <ShieldAlert size={48} />
+          </div>
+
+          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '0.6rem' }}>
+            Manager Administration Permission Denied
+          </h2>
+
+          <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '2rem' }}>
+            Your current staff role (<strong>{user.role}</strong>) does not have administrator privileges. Please sign in with an Admin/Manager account to manage categories, dishes, tables, and financial analytics.
+          </p>
+
+          <button
+            onClick={onOpenLogin}
+            className="btn-primary"
+            style={{ width: '100%', justifyContent: 'center', padding: '0.9rem 1.5rem', fontSize: '1rem', background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' }}
+          >
+            Switch to Manager Account
           </button>
         </div>
       </div>
@@ -187,7 +233,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
             <LayoutDashboard size={28} />
           </div>
           <div>
-            <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#fff' }}>Manager Administration</h1>
+            <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-heading)' }}>Manager Administration</h1>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Menu management, QR table generation & sales analytics</p>
           </div>
         </div>
@@ -210,7 +256,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
           </div>
           <div>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>TODAY'S SALES</span>
-            <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fff' }}>${analytics?.todaySales?.toFixed(2) || '0.00'}</h3>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-heading)' }}>${analytics?.todaySales?.toFixed(2) || '0.00'}</h3>
           </div>
         </div>
 
@@ -220,7 +266,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
           </div>
           <div>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>TOTAL ORDERS</span>
-            <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fff' }}>{analytics?.todayOrdersCount || 0} Orders</h3>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-heading)' }}>{analytics?.todayOrdersCount || 0} Orders</h3>
           </div>
         </div>
 
@@ -230,7 +276,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
           </div>
           <div>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>ACTIVE TABLES</span>
-            <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fff' }}>{analytics?.activeTablesCount || 0} / {analytics?.totalTablesCount || 0}</h3>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-heading)' }}>{analytics?.activeTablesCount || 0} / {analytics?.totalTablesCount || 0}</h3>
           </div>
         </div>
       </div>
@@ -311,7 +357,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>TODAY'S REVENUE</span>
                 <span style={{ fontSize: '0.75rem', background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>Today</span>
               </div>
-              <h2 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#fff' }}>${analytics?.todaySales?.toFixed(2) || '0.00'}</h2>
+              <h2 style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-heading)' }}>${analytics?.todaySales?.toFixed(2) || '0.00'}</h2>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '0.4rem' }}>
                 Yesterday: <strong>${analytics?.yesterdaySales?.toFixed(2) || '0.00'}</strong> ({analytics?.yesterdayOrdersCount || 0} orders)
               </div>
@@ -322,7 +368,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>TODAY'S ORDERS</span>
                 <span style={{ fontSize: '0.75rem', background: 'rgba(6, 182, 212, 0.2)', color: '#38bdf8', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>Today</span>
               </div>
-              <h2 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#fff' }}>{analytics?.todayOrdersCount || 0} Orders</h2>
+              <h2 style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-heading)' }}>{analytics?.todayOrdersCount || 0} Orders</h2>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '0.4rem' }}>
                 Active Tables: <strong>{analytics?.activeTablesCount || 0}</strong> occupied
               </div>
@@ -333,7 +379,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>ALL-TIME REVENUE</span>
                 <span style={{ fontSize: '0.75rem', background: 'rgba(99, 102, 241, 0.2)', color: '#a5b4fc', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>Lifetime</span>
               </div>
-              <h2 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#fff' }}>${analytics?.allTimeSales?.toFixed(2) || '0.00'}</h2>
+              <h2 style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-heading)' }}>${analytics?.allTimeSales?.toFixed(2) || '0.00'}</h2>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '0.4rem' }}>
                 Total Orders Count: <strong>{analytics?.allTimeOrdersCount || 0}</strong>
               </div>
@@ -344,7 +390,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>AVG ORDER VALUE (AOV)</span>
                 <span style={{ fontSize: '0.75rem', background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>Avg</span>
               </div>
-              <h2 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#fff' }}>
+              <h2 style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-heading)' }}>
                 ${(analytics?.allTimeOrdersCount ? (analytics.allTimeSales / analytics.allTimeOrdersCount) : 0).toFixed(2)}
               </h2>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '0.4rem' }}>
@@ -357,7 +403,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
           <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.2rem' }}>
               <div>
-                <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fff' }}>Customer Orders & Sales Log</h3>
+                <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-heading)' }}>Customer Orders & Sales Log</h3>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Detailed record of past and live customer orders</p>
               </div>
 
@@ -372,7 +418,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
                       borderRadius: '6px',
                       fontSize: '0.8rem',
                       fontWeight: 700,
-                      background: orderDateFilter === f ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255,255,255,0.05)',
+                      background: orderDateFilter === f ? 'rgba(16, 185, 129, 0.25)' : 'var(--btn-secondary-bg)',
                       color: orderDateFilter === f ? '#34d399' : 'var(--text-muted)',
                       border: orderDateFilter === f ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-glass)'
                     }}
@@ -394,10 +440,10 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem 0.75rem 2.8rem',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid var(--border-glass)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--input-border)',
                   borderRadius: '8px',
-                  color: '#fff',
+                  color: 'var(--text-main)',
                   fontSize: '0.9rem',
                   outline: 'none'
                 }}
@@ -436,8 +482,8 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
                     }
                     return true;
                   }).map((ord) => (
-                    <tr key={ord.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <td style={{ padding: '0.8rem', fontWeight: 700, color: '#fff' }}>{ord.orderNumber}</td>
+                    <tr key={ord.id} style={{ borderBottom: '1px solid var(--border-glass)' }}>
+                      <td style={{ padding: '0.8rem', fontWeight: 700, color: 'var(--text-heading)' }}>{ord.orderNumber}</td>
                       <td style={{ padding: '0.8rem' }}><span className="badge badge-bill">Table #{ord.tableNumber}</span></td>
                       <td style={{ padding: '0.8rem', color: 'var(--text-muted)' }}>{new Date(ord.createdAt).toLocaleString()}</td>
                       <td style={{ padding: '0.8rem' }}>
@@ -479,7 +525,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
       {activeTab === 'dishes' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#fff' }}>Dish Catalog</h2>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-heading)' }}>Dish Catalog</h2>
             <button
               onClick={() => setEditingDish({ name: '', description: '', price: 12.00, categoryId: categories[0]?.id || 1, isAvailable: true, imageUrl: '' })}
               className="btn-primary"
@@ -493,7 +539,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
               <div key={dish.id} className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>{dish.name}</h3>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-heading)' }}>{dish.name}</h3>
                     <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#10b981' }}>${dish.price?.toFixed(2)}</span>
                   </div>
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.8rem' }}>{dish.description}</p>
@@ -527,7 +573,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
       {activeTab === 'categories' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#fff' }}>Menu Categories</h2>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-heading)' }}>Menu Categories</h2>
             <button
               onClick={() => setEditingCategory({ name: '', displayOrder: categories.length + 1, isActive: true })}
               className="btn-primary"
@@ -540,7 +586,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
             {categories.map(cat => (
               <div key={cat.id} className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>{cat.name}</h3>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-heading)' }}>{cat.name}</h3>
                   <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Display Order: #{cat.displayOrder}</span>
                 </div>
                 <button onClick={() => setEditingCategory(cat)} className="btn-secondary" style={{ padding: '0.4rem 0.6rem' }}>
@@ -556,7 +602,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
       {activeTab === 'tables' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#fff' }}>Table & QR Code Manager</h2>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-heading)' }}>Table & QR Code Manager</h2>
             <button
               onClick={() => setEditingTable({ tableNumber: tables.length + 1, capacity: 4 })}
               className="btn-primary"
@@ -569,15 +615,15 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
             {tables.map(tbl => (
               <div key={tbl.id} className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fff' }}>Table #{tbl.tableNumber}</span>
+                  <span style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-heading)' }}>Table #{tbl.tableNumber}</span>
                   <span className="badge badge-available">{tbl.capacity} Seats</span>
                 </div>
 
-                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '0.8rem', border: '1px solid var(--border-glass)' }}>
+                <div style={{ background: 'var(--btn-secondary-bg)', padding: '1rem', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '0.8rem', border: '1px solid var(--border-glass)' }}>
                   <QrCode size={36} style={{ color: '#10b981' }} />
                   <div>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>QR Payload Token:</span>
-                    <span style={{ fontSize: '0.85rem', color: '#fff', fontWeight: 700 }}>{tbl.qrToken}</span>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-heading)', fontWeight: 700 }}>{tbl.qrToken}</span>
                   </div>
                 </div>
 
@@ -585,12 +631,12 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
                   <div style={{ background: 'rgba(56, 189, 248, 0.1)', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#38bdf8', fontSize: '0.8rem', fontWeight: 700 }}>
                     <div>
                       <span>🔑 Session Code: </span>
-                      <code style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 800 }}>{tbl.activeSessionToken}</code>
+                      <code style={{ color: 'var(--text-heading)', fontSize: '0.85rem', fontWeight: 800 }}>{tbl.activeSessionToken}</code>
                     </div>
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(tbl.activeSessionToken);
-                        alert(`Session Code ${tbl.activeSessionToken} copied for Table #${tbl.tableNumber}!`);
+                        toast.success(`Session Code ${tbl.activeSessionToken} copied for Table #${tbl.tableNumber}!`);
                       }}
                       className="btn-secondary"
                       style={{ padding: '0.2rem 0.5rem', fontSize: '0.7rem', background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8' }}
@@ -631,7 +677,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
           <div className="glass-panel animate-fade-in" style={{ maxWidth: '480px', width: '100%', padding: '1.8rem', position: 'relative' }}>
             <button onClick={() => setEditingDish(null)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', color: 'var(--text-muted)' }}><X size={20} /></button>
 
-            <h3 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#fff', marginBottom: '1rem' }}>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '1rem' }}>
               {editingDish.id ? 'Edit Dish Item' : 'Add New Dish Item'}
             </h3>
 
@@ -643,7 +689,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
                   value={editingDish.name || ''}
                   onChange={(e) => setEditingDish({ ...editingDish, name: e.target.value })}
                   required
-                  style={{ width: '100%', padding: '0.7rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', borderRadius: '8px', color: '#fff' }}
+                  style={{ width: '100%', padding: '0.7rem', background: 'var(--input-bg)', border: '1px solid var(--input-border)', borderRadius: '8px', color: 'var(--text-main)' }}
                 />
               </div>
 
@@ -652,7 +698,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
                 <textarea
                   value={editingDish.description || ''}
                   onChange={(e) => setEditingDish({ ...editingDish, description: e.target.value })}
-                  style={{ width: '100%', height: '65px', padding: '0.7rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', borderRadius: '8px', color: '#fff' }}
+                  style={{ width: '100%', height: '65px', padding: '0.7rem', background: 'var(--input-bg)', border: '1px solid var(--input-border)', borderRadius: '8px', color: 'var(--text-main)' }}
                 />
               </div>
 
@@ -665,7 +711,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
                     value={editingDish.price || ''}
                     onChange={(e) => setEditingDish({ ...editingDish, price: parseFloat(e.target.value) })}
                     required
-                    style={{ width: '100%', padding: '0.7rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', borderRadius: '8px', color: '#fff' }}
+                    style={{ width: '100%', padding: '0.7rem', background: 'var(--input-bg)', border: '1px solid var(--input-border)', borderRadius: '8px', color: 'var(--text-main)' }}
                   />
                 </div>
 
@@ -674,10 +720,10 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
                   <select
                     value={editingDish.categoryId || 1}
                     onChange={(e) => setEditingDish({ ...editingDish, categoryId: parseInt(e.target.value) })}
-                    style={{ width: '100%', padding: '0.7rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', borderRadius: '8px', color: '#fff' }}
+                    style={{ width: '100%', padding: '0.7rem', background: 'var(--input-bg)', border: '1px solid var(--input-border)', borderRadius: '8px', color: 'var(--text-main)' }}
                   >
                     {categories.map(c => (
-                      <option key={c.id} value={c.id} style={{ background: '#0f172a' }}>{c.name}</option>
+                      <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
                 </div>
@@ -697,7 +743,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
           <div className="glass-panel animate-fade-in" style={{ maxWidth: '400px', width: '100%', padding: '1.8rem', position: 'relative' }}>
             <button onClick={() => setEditingCategory(null)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', color: 'var(--text-muted)' }}><X size={20} /></button>
 
-            <h3 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#fff', marginBottom: '1rem' }}>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '1rem' }}>
               {editingCategory.id ? 'Edit Category' : 'Add Category'}
             </h3>
 
@@ -709,7 +755,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
                   value={editingCategory.name || ''}
                   onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
                   required
-                  style={{ width: '100%', padding: '0.7rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', borderRadius: '8px', color: '#fff' }}
+                  style={{ width: '100%', padding: '0.7rem', background: 'var(--input-bg)', border: '1px solid var(--input-border)', borderRadius: '8px', color: 'var(--text-main)' }}
                 />
               </div>
 
@@ -727,7 +773,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
           <div className="glass-panel animate-fade-in" style={{ maxWidth: '400px', width: '100%', padding: '1.8rem', position: 'relative' }}>
             <button onClick={() => setEditingTable(null)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', color: 'var(--text-muted)' }}><X size={20} /></button>
 
-            <h3 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#fff', marginBottom: '1rem' }}>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '1rem' }}>
               {editingTable.id ? `Edit Dining Table #${editingTable.tableNumber}` : 'Add Dining Table'}
             </h3>
 
@@ -739,7 +785,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
                   value={editingTable.tableNumber || ''}
                   onChange={(e) => setEditingTable({ ...editingTable, tableNumber: parseInt(e.target.value) })}
                   required
-                  style={{ width: '100%', padding: '0.7rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', borderRadius: '8px', color: '#fff' }}
+                  style={{ width: '100%', padding: '0.7rem', background: 'var(--input-bg)', border: '1px solid var(--input-border)', borderRadius: '8px', color: 'var(--text-main)' }}
                 />
               </div>
 
@@ -750,7 +796,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
                   value={editingTable.capacity || ''}
                   onChange={(e) => setEditingTable({ ...editingTable, capacity: parseInt(e.target.value) })}
                   required
-                  style={{ width: '100%', padding: '0.7rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', borderRadius: '8px', color: '#fff' }}
+                  style={{ width: '100%', padding: '0.7rem', background: 'var(--input-bg)', border: '1px solid var(--input-border)', borderRadius: '8px', color: 'var(--text-main)' }}
                 />
               </div>
 
@@ -768,7 +814,7 @@ export default function ManagerDashboard({ user, onOpenLogin }) {
           <div className="glass-panel animate-fade-in" style={{ maxWidth: '440px', width: '100%', padding: '2rem', position: 'relative', textAlign: 'center' }}>
             <button onClick={() => setQrModalTable(null)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', color: 'var(--text-muted)' }}><X size={20} /></button>
 
-            <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', marginBottom: '0.3rem' }}>
+            <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '0.3rem' }}>
               Table #{qrModalTable.tableNumber} Smart QR Standee
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>

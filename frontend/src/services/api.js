@@ -21,20 +21,37 @@ api.interceptors.request.use((config) => {
   return Promise.reject(error);
 });
 
-// Response Interceptor: Handle errors cleanly
+// Response Interceptor: Handle 401 (Unauthorized) & 403 (Forbidden) cleanly
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Unauthorized token session expired
+      // Clear invalid authentication state
       localStorage.removeItem('authToken');
       sessionStorage.removeItem('authToken');
+      localStorage.removeItem('staffUser');
+      
+      // Notify application to return staff to login
+      window.dispatchEvent(new CustomEvent('auth:unauthorized', {
+        detail: {
+          message: error.response?.data?.message || 'Your session has expired or authentication failed. Please sign in again.'
+        }
+      }));
+    } else if (error.response && error.response.status === 403) {
+      // Notify application of permission failure
+      window.dispatchEvent(new CustomEvent('auth:forbidden', {
+        detail: {
+          message: error.response?.data?.message || 'Access Denied: Your staff role does not have permission to perform this action.'
+        }
+      }));
     }
+
     const message = error.response?.data?.message || error.message || 'API Request Failed';
     return Promise.reject(new Error(message));
   }
 );
 
+// Customer endpoints: Guest table self-ordering with session tokens (separate from staff JWTs)
 export const customerApi = {
   startSession: async (tableNumber, qrToken, sessionToken, restaurantId, restaurantSlug) => {
     const res = await api.post('/customer/session/start', { tableNumber, qrToken, sessionToken, restaurantId, restaurantSlug });
@@ -82,9 +99,10 @@ export const customerApi = {
   }
 };
 
+// Kitchen endpoints: Authenticated KDS (restaurant identity derived from staff JWT principal)
 export const kitchenApi = {
-  getOrders: async (restaurantId) => {
-    const res = await api.get('/kitchen/orders', { params: { restaurantId } });
+  getOrders: async () => {
+    const res = await api.get('/kitchen/orders');
     return res.data;
   },
 
@@ -94,9 +112,10 @@ export const kitchenApi = {
   }
 };
 
+// Waiter endpoints: Authenticated Waiter Portal (restaurant identity derived from staff JWT principal)
 export const waiterApi = {
-  getTables: async (restaurantId) => {
-    const res = await api.get('/waiter/tables', { params: { restaurantId } });
+  getTables: async () => {
+    const res = await api.get('/waiter/tables');
     return res.data;
   },
 
@@ -105,8 +124,8 @@ export const waiterApi = {
     return res.data;
   },
 
-  getAssistanceRequests: async (restaurantId) => {
-    const res = await api.get('/waiter/assistance', { params: { restaurantId } });
+  getAssistanceRequests: async () => {
+    const res = await api.get('/waiter/assistance');
     return res.data;
   },
 
@@ -115,8 +134,8 @@ export const waiterApi = {
     return res.data;
   },
 
-  getReadyOrders: async (restaurantId) => {
-    const res = await api.get('/waiter/orders/ready', { params: { restaurantId } });
+  getReadyOrders: async () => {
+    const res = await api.get('/waiter/orders/ready');
     return res.data;
   },
 
@@ -131,23 +150,24 @@ export const waiterApi = {
   }
 };
 
+// Manager endpoints: Authenticated Admin Portal (restaurant identity derived from staff JWT principal)
 export const managerApi = {
-  getDashboard: async (restaurantId) => {
-    const res = await api.get('/manager/analytics/dashboard', { params: { restaurantId } });
+  getDashboard: async () => {
+    const res = await api.get('/manager/analytics/dashboard');
     return res.data;
   },
 
-  getCategories: async (restaurantId) => {
-    const res = await api.get('/manager/categories', { params: { restaurantId } });
+  getCategories: async () => {
+    const res = await api.get('/manager/categories');
     return res.data;
   },
 
-  saveCategory: async (category, restaurantId) => {
+  saveCategory: async (category) => {
     if (category.id) {
       const res = await api.put(`/manager/categories/${category.id}`, category);
       return res.data;
     }
-    const res = await api.post('/manager/categories', category, { params: { restaurantId } });
+    const res = await api.post('/manager/categories', category);
     return res.data;
   },
 
@@ -155,17 +175,17 @@ export const managerApi = {
     await api.delete(`/manager/categories/${id}`);
   },
 
-  getDishes: async (restaurantId) => {
-    const res = await api.get('/manager/dishes', { params: { restaurantId } });
+  getDishes: async () => {
+    const res = await api.get('/manager/dishes');
     return res.data;
   },
 
-  saveDish: async (dish, restaurantId) => {
+  saveDish: async (dish) => {
     if (dish.id) {
       const res = await api.put(`/manager/dishes/${dish.id}`, dish);
       return res.data;
     }
-    const res = await api.post('/manager/dishes', dish, { params: { restaurantId } });
+    const res = await api.post('/manager/dishes', dish);
     return res.data;
   },
 
@@ -178,17 +198,17 @@ export const managerApi = {
     await api.delete(`/manager/dishes/${id}`);
   },
 
-  getTables: async (restaurantId) => {
-    const res = await api.get('/manager/tables', { params: { restaurantId } });
+  getTables: async () => {
+    const res = await api.get('/manager/tables');
     return res.data;
   },
 
-  saveTable: async (table, restaurantId) => {
+  saveTable: async (table) => {
     if (table.id) {
       const res = await api.put(`/manager/tables/${table.id}`, table);
       return res.data;
     }
-    const res = await api.post('/manager/tables', table, { params: { restaurantId } });
+    const res = await api.post('/manager/tables', table);
     return res.data;
   },
 
@@ -201,12 +221,13 @@ export const managerApi = {
     return res.data;
   },
 
-  getAllOrders: async (restaurantId) => {
-    const res = await api.get('/manager/orders', { params: { restaurantId } });
+  getAllOrders: async () => {
+    const res = await api.get('/manager/orders');
     return res.data;
   }
 };
 
+// Authentication & Restaurant Directory endpoints
 export const authApi = {
   login: async (username, password) => {
     const res = await api.post('/auth/login', { username, password });
@@ -229,3 +250,5 @@ export const authApi = {
     return res.data;
   }
 };
+
+export default api;

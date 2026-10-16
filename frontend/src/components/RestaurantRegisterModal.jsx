@@ -57,18 +57,18 @@ export default function RestaurantRegisterModal({ isOpen, onClose, onRegisterSuc
       padding: '1rem',
       animation: 'fadeIn 0.2s ease-out',
     }}>
-      <div style={{
-        backgroundColor: '#1e293b',
-        color: '#f8fafc',
-        borderRadius: '1.25rem',
-        maxWidth: '560px',
-        width: '100%',
-        maxHeight: '90vh',
-        overflowY: 'auto',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1)',
-        padding: '2rem',
-        position: 'relative',
-      }}>
+      <div
+        className="glass-panel-elevated"
+        style={{
+          borderRadius: '1.25rem',
+          maxWidth: '560px',
+          width: '100%',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          padding: '2rem',
+          position: 'relative',
+        }}
+      >
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
           <div>
@@ -87,19 +87,19 @@ export default function RestaurantRegisterModal({ isOpen, onClose, onRegisterSuc
             }}>
               ✨ Partner Registration
             </div>
-            <h2 style={{ fontSize: '1.6rem', fontWeight: '800', margin: 0, color: '#ffffff' }}>
+            <h2 style={{ fontSize: '1.6rem', fontWeight: '800', margin: 0, color: 'var(--text-heading)' }}>
               Register Your Restaurant
             </h2>
-            <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
               Create digital menus, generate table QR codes & accept instant orders!
             </p>
           </div>
           <button
             onClick={onClose}
             style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              color: '#94a3b8',
+              background: 'var(--bg-glass)',
+              border: '1px solid var(--border-glass)',
+              color: 'var(--text-muted)',
               fontSize: '1.2rem',
               width: '36px',
               height: '36px',
@@ -110,8 +110,8 @@ export default function RestaurantRegisterModal({ isOpen, onClose, onRegisterSuc
               justifyContent: 'center',
               transition: 'all 0.2s',
             }}
-            onMouseOver={(e) => e.target.style.color = '#fff'}
-            onMouseOut={(e) => e.target.style.color = '#94a3b8'}
+            onMouseOver={(e) => e.target.style.color = 'var(--text-heading)'}
+            onMouseOut={(e) => e.target.style.color = 'var(--text-muted)'}
           >
             ✕
           </button>
@@ -121,7 +121,7 @@ export default function RestaurantRegisterModal({ isOpen, onClose, onRegisterSuc
           <div style={{
             backgroundColor: 'rgba(239, 68, 68, 0.15)',
             border: '1px solid rgba(239, 68, 68, 0.3)',
-            color: '#fca5a5',
+            color: '#f87171',
             padding: '0.75rem 1rem',
             borderRadius: '0.75rem',
             marginBottom: '1.25rem',
@@ -137,10 +137,10 @@ export default function RestaurantRegisterModal({ isOpen, onClose, onRegisterSuc
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {/* Restaurant Details Section */}
           <div style={{
-            background: 'rgba(15, 23, 42, 0.4)',
-            padding: '1rem',
+            background: 'var(--bg-glass)',
+            padding: '1.15rem',
             borderRadius: '0.85rem',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
+            border: '1px solid var(--border-glass)',
             display: 'flex',
             flexDirection: 'column',
             gap: '0.85rem'
@@ -150,7 +150,7 @@ export default function RestaurantRegisterModal({ isOpen, onClose, onRegisterSuc
             </h4>
             
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#cbd5e1', marginBottom: '0.35rem' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-main)', marginBottom: '0.35rem' }}>
                 Restaurant Name *
               </label>
               <input
@@ -164,9 +164,9 @@ export default function RestaurantRegisterModal({ isOpen, onClose, onRegisterSuc
                   width: '100%',
                   padding: '0.65rem 0.85rem',
                   borderRadius: '0.5rem',
-                  backgroundColor: '#0f172a',
-                  border: '1px solid #334155',
-                  color: '#fff',
+                  backgroundColor: 'var(--input-bg)',
+                  border: '1px solid var(--input-border)',
+                  color: 'var(--text-main)',
                   fontSize: '0.9rem',
                   outline: 'none',
                 }}
@@ -175,7 +175,7 @@ export default function RestaurantRegisterModal({ isOpen, onClose, onRegisterSuc
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#cbd5e1', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-main)', marginBottom: '0.35rem' }}>
                   Phone Number
                 </label>
                 <input
@@ -188,9 +188,9 @@ export default function RestaurantRegisterModal({ isOpen, onClose, onRegisterSuc
                     width: '100%',
                     padding: '0.65rem 0.85rem',
                     borderRadius: '0.5rem',
-                    backgroundColor: '#0f172a',
-                    border: '1px solid #334155',
-                    color: '#fff',
+                    backgroundColor: 'var(--input-bg)',
+                    border: '1px solid var(--input-border)',
+                    color: 'var(--text-main)',
                     fontSize: '0.9rem',
                     outline: 'none',
                   }}
@@ -198,7 +198,7 @@ export default function RestaurantRegisterModal({ isOpen, onClose, onRegisterSuc
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#cbd5e1', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-main)', marginBottom: '0.35rem' }}>
                   Address
                 </label>
                 <input
@@ -211,9 +211,9 @@ export default function RestaurantRegisterModal({ isOpen, onClose, onRegisterSuc
                     width: '100%',
                     padding: '0.65rem 0.85rem',
                     borderRadius: '0.5rem',
-                    backgroundColor: '#0f172a',
-                    border: '1px solid #334155',
-                    color: '#fff',
+                    backgroundColor: 'var(--input-bg)',
+                    border: '1px solid var(--input-border)',
+                    color: 'var(--text-main)',
                     fontSize: '0.9rem',
                     outline: 'none',
                   }}
@@ -224,10 +224,10 @@ export default function RestaurantRegisterModal({ isOpen, onClose, onRegisterSuc
 
           {/* Manager Account Section */}
           <div style={{
-            background: 'rgba(15, 23, 42, 0.4)',
-            padding: '1rem',
+            background: 'var(--bg-glass)',
+            padding: '1.15rem',
             borderRadius: '0.85rem',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
+            border: '1px solid var(--border-glass)',
             display: 'flex',
             flexDirection: 'column',
             gap: '0.85rem'
@@ -237,7 +237,7 @@ export default function RestaurantRegisterModal({ isOpen, onClose, onRegisterSuc
             </h4>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#cbd5e1', marginBottom: '0.35rem' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-main)', marginBottom: '0.35rem' }}>
                 Your Full Name *
               </label>
               <input
@@ -251,9 +251,9 @@ export default function RestaurantRegisterModal({ isOpen, onClose, onRegisterSuc
                   width: '100%',
                   padding: '0.65rem 0.85rem',
                   borderRadius: '0.5rem',
-                  backgroundColor: '#0f172a',
-                  border: '1px solid #334155',
-                  color: '#fff',
+                  backgroundColor: 'var(--input-bg)',
+                  border: '1px solid var(--input-border)',
+                  color: 'var(--text-main)',
                   fontSize: '0.9rem',
                   outline: 'none',
                 }}
@@ -262,7 +262,7 @@ export default function RestaurantRegisterModal({ isOpen, onClose, onRegisterSuc
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#cbd5e1', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-main)', marginBottom: '0.35rem' }}>
                   Login Username *
                 </label>
                 <input
@@ -276,9 +276,9 @@ export default function RestaurantRegisterModal({ isOpen, onClose, onRegisterSuc
                     width: '100%',
                     padding: '0.65rem 0.85rem',
                     borderRadius: '0.5rem',
-                    backgroundColor: '#0f172a',
-                    border: '1px solid #334155',
-                    color: '#fff',
+                    backgroundColor: 'var(--input-bg)',
+                    border: '1px solid var(--input-border)',
+                    color: 'var(--text-main)',
                     fontSize: '0.9rem',
                     outline: 'none',
                   }}
@@ -286,7 +286,7 @@ export default function RestaurantRegisterModal({ isOpen, onClose, onRegisterSuc
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#cbd5e1', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-main)', marginBottom: '0.35rem' }}>
                   Password *
                 </label>
                 <input
@@ -300,9 +300,9 @@ export default function RestaurantRegisterModal({ isOpen, onClose, onRegisterSuc
                     width: '100%',
                     padding: '0.65rem 0.85rem',
                     borderRadius: '0.5rem',
-                    backgroundColor: '#0f172a',
-                    border: '1px solid #334155',
-                    color: '#fff',
+                    backgroundColor: 'var(--input-bg)',
+                    border: '1px solid var(--input-border)',
+                    color: 'var(--text-main)',
                     fontSize: '0.9rem',
                     outline: 'none',
                   }}
@@ -311,7 +311,7 @@ export default function RestaurantRegisterModal({ isOpen, onClose, onRegisterSuc
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#cbd5e1', marginBottom: '0.35rem' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-main)', marginBottom: '0.35rem' }}>
                 Email Address
               </label>
               <input
@@ -324,9 +324,9 @@ export default function RestaurantRegisterModal({ isOpen, onClose, onRegisterSuc
                   width: '100%',
                   padding: '0.65rem 0.85rem',
                   borderRadius: '0.5rem',
-                  backgroundColor: '#0f172a',
-                  border: '1px solid #334155',
-                  color: '#fff',
+                  backgroundColor: 'var(--input-bg)',
+                  border: '1px solid var(--input-border)',
+                  color: 'var(--text-main)',
                   fontSize: '0.9rem',
                   outline: 'none',
                 }}

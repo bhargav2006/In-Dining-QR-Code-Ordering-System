@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ConciergeBell, CheckCircle2, AlertTriangle, CreditCard, RefreshCw, UserCheck, DollarSign, X, Utensils, PhoneCall, ShoppingBag, Store } from 'lucide-react';
+import { ConciergeBell, CheckCircle2, AlertTriangle, CreditCard, RefreshCw, UserCheck, DollarSign, X, Utensils, PhoneCall, ShoppingBag, Store, ShieldAlert } from 'lucide-react';
 import { waiterApi } from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 export default function WaiterPortal({ user, onOpenLogin }) {
+  const { toast } = useToast();
   const currentUser = user || (() => {
     try {
       const saved = localStorage.getItem('staffUser');
@@ -12,8 +14,6 @@ export default function WaiterPortal({ user, onOpenLogin }) {
     }
   })();
 
-  const restId = currentUser?.restaurantId;
-
   const [tables, setTables] = useState([]);
   const [assistanceList, setAssistanceList] = useState([]);
   const [readyOrders, setReadyOrders] = useState([]);
@@ -21,11 +21,12 @@ export default function WaiterPortal({ user, onOpenLogin }) {
   const [initialLoading, setInitialLoading] = useState(true);
 
   const loadData = async () => {
+    if (!currentUser) return;
     try {
       const [tblData, astData, readyData] = await Promise.all([
-        waiterApi.getTables(restId),
-        waiterApi.getAssistanceRequests(restId),
-        waiterApi.getReadyOrders(restId),
+        waiterApi.getTables(),
+        waiterApi.getAssistanceRequests(),
+        waiterApi.getReadyOrders(),
       ]);
 
       setTables(tblData || []);
@@ -39,18 +40,23 @@ export default function WaiterPortal({ user, onOpenLogin }) {
   };
 
   useEffect(() => {
-    loadData();
-    const pollMs = Number(import.meta.env.VITE_POLLING_INTERVAL_MS) || 4000;
-    const interval = setInterval(loadData, pollMs);
-    return () => clearInterval(interval);
-  }, [restId]);
+    if (currentUser && (currentUser.role === 'WAITER' || currentUser.role === 'ADMIN')) {
+      loadData();
+      const pollMs = Number(import.meta.env.VITE_POLLING_INTERVAL_MS) || 4000;
+      const interval = setInterval(loadData, pollMs);
+      return () => clearInterval(interval);
+    } else {
+      setInitialLoading(false);
+    }
+  }, [currentUser]);
 
   const handleResolveAssistance = async (id) => {
     try {
       await waiterApi.resolveAssistance(id);
       loadData();
+      toast.success('Assistance request resolved');
     } catch (err) {
-      alert('Failed to resolve request: ' + err.message);
+      toast.error('Failed to resolve request: ' + err.message);
     }
   };
 
@@ -58,8 +64,9 @@ export default function WaiterPortal({ user, onOpenLogin }) {
     try {
       await waiterApi.markServed(orderId);
       loadData();
+      toast.success('Order marked as served to table');
     } catch (err) {
-      alert('Failed to mark order as served: ' + err.message);
+      toast.error('Failed to mark order as served: ' + err.message);
     }
   };
 
@@ -67,8 +74,9 @@ export default function WaiterPortal({ user, onOpenLogin }) {
     try {
       await waiterApi.updateTableStatus(tableId, newStatus);
       loadData();
+      toast.info('Table status updated to ' + newStatus);
     } catch (err) {
-      alert('Failed to update table status: ' + err.message);
+      toast.error('Failed to update table status: ' + err.message);
     }
   };
 
@@ -78,8 +86,9 @@ export default function WaiterPortal({ user, onOpenLogin }) {
       await waiterApi.checkoutTable(selectedTableForCheckout.id);
       setSelectedTableForCheckout(null);
       loadData();
+      toast.success('Table checkout completed successfully');
     } catch (err) {
-      alert('Checkout failed: ' + err.message);
+      toast.error('Checkout failed: ' + err.message);
     }
   };
 
@@ -87,10 +96,83 @@ export default function WaiterPortal({ user, onOpenLogin }) {
     try {
       await waiterApi.checkoutTable(tableId);
       loadData();
+      toast.success('Table liberated and set to AVAILABLE');
     } catch (err) {
-      alert('Failed to make table free: ' + err.message);
+      toast.error('Failed to make table free: ' + err.message);
     }
   };
+
+  if (!currentUser) {
+    return (
+      <div style={{ maxWidth: '600px', margin: '4rem auto', padding: '1rem' }}>
+        <div className="glass-panel animate-fade-in" style={{ padding: '2.5rem 2rem', textAlign: 'center' }}>
+          <div style={{
+            display: 'inline-flex',
+            padding: '1.2rem',
+            background: 'rgba(245, 158, 11, 0.15)',
+            color: '#fbbf24',
+            borderRadius: '20px',
+            marginBottom: '1.2rem',
+            border: '1px solid rgba(245, 158, 11, 0.3)'
+          }}>
+            <ConciergeBell size={48} />
+          </div>
+
+          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '0.6rem' }}>
+            Waiter Operations Restricted
+          </h2>
+
+          <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '2rem' }}>
+            Table occupancy monitoring, customer assistance calls, and ready food dispatch require authenticated waiter or floor staff access.
+          </p>
+
+          <button
+            onClick={onOpenLogin}
+            className="btn-primary"
+            style={{ padding: '0.85rem 2rem', fontSize: '1rem', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}
+          >
+            Sign In as Waiter Staff
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentUser.role !== 'WAITER' && currentUser.role !== 'ADMIN') {
+    return (
+      <div style={{ maxWidth: '600px', margin: '4rem auto', padding: '1rem' }}>
+        <div className="glass-panel animate-fade-in" style={{ padding: '2.5rem 2rem', textAlign: 'center' }}>
+          <div style={{
+            display: 'inline-flex',
+            padding: '1.2rem',
+            background: 'rgba(239, 68, 68, 0.15)',
+            color: '#f87171',
+            borderRadius: '20px',
+            marginBottom: '1.2rem',
+            border: '1px solid rgba(239, 68, 68, 0.3)'
+          }}>
+            <ShieldAlert size={48} />
+          </div>
+
+          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '0.6rem' }}>
+            Waiter Operations Permission Denied
+          </h2>
+
+          <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '2rem' }}>
+            Your current staff role (<strong>{currentUser.role}</strong>) does not have access to the Waiter Portal. Please sign in with a Waiter or Admin account.
+          </p>
+
+          <button
+            onClick={onOpenLogin}
+            className="btn-primary"
+            style={{ padding: '0.85rem 2rem', fontSize: '1rem', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}
+          >
+            Switch to Waiter Account
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem 1.5rem 6rem 1.5rem' }}>
@@ -109,7 +191,7 @@ export default function WaiterPortal({ user, onOpenLogin }) {
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#fff', margin: 0 }}>Waiter & Staff Operations</h1>
+              <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-heading)', margin: 0 }}>Waiter & Staff Operations</h1>
               {currentUser?.restaurantName && (
                 <span style={{
                   display: 'inline-flex',
@@ -164,7 +246,7 @@ export default function WaiterPortal({ user, onOpenLogin }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.2rem' }}>
             {readyOrders.map(order => (
               <div key={order.orderId} style={{
-                background: 'rgba(15, 23, 42, 0.9)',
+                background: 'var(--bg-card)',
                 padding: '1rem 1.2rem',
                 borderRadius: '12px',
                 border: '1px solid rgba(16, 185, 129, 0.3)',
@@ -190,7 +272,7 @@ export default function WaiterPortal({ user, onOpenLogin }) {
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                     {order.items?.map((it, idx) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', fontWeight: 600 }}>
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-heading)', fontWeight: 600 }}>
                         <span>{it.dishName}</span>
                         <span style={{ color: '#10b981' }}>x{it.quantity}</span>
                       </div>
@@ -230,7 +312,7 @@ export default function WaiterPortal({ user, onOpenLogin }) {
 
               return (
                 <div key={req.id} style={{
-                  background: isCash ? 'rgba(245, 158, 11, 0.2)' : 'rgba(15, 23, 42, 0.8)',
+                  background: isCash ? 'rgba(245, 158, 11, 0.2)' : 'var(--bg-card)',
                   padding: '1rem',
                   borderRadius: '12px',
                   border: isCash ? '2px solid #f59e0b' : '1px solid var(--border-glass)',
@@ -239,7 +321,7 @@ export default function WaiterPortal({ user, onOpenLogin }) {
                   justifyContent: 'space-between'
                 }}>
                   <div>
-                    <span style={{ fontWeight: 800, color: '#fff', fontSize: '1.1rem' }}>Table #{req.tableNumber}</span>
+                    <span style={{ fontWeight: 800, color: 'var(--text-heading)', fontSize: '1.1rem' }}>Table #{req.tableNumber}</span>
                     <span style={{ display: 'block', fontSize: '0.85rem', color: '#fbbf24', fontWeight: 700, marginTop: '0.2rem' }}>
                       {isCash ? '💰 CASH PAYMENT COLLECTION' : `Type: ${req.requestType}`}
                     </span>
@@ -261,7 +343,7 @@ export default function WaiterPortal({ user, onOpenLogin }) {
       )}
 
       {/* SECTION 3: Dining Floor Layout & Table Map */}
-      <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#fff', marginBottom: '1rem' }}>
+      <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '1rem' }}>
         Dining Floor Layout & Table Map {currentUser?.restaurantName ? `(${currentUser.restaurantName})` : ''}
       </h2>
 
@@ -283,7 +365,7 @@ export default function WaiterPortal({ user, onOpenLogin }) {
           }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
-                <span style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff' }}>Table #{tbl.tableNumber}</span>
+                <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-heading)' }}>Table #{tbl.tableNumber}</span>
                 <span className={`badge badge-${tbl.status?.toLowerCase()}`}>
                   {tbl.status}
                 </span>
@@ -314,7 +396,7 @@ export default function WaiterPortal({ user, onOpenLogin }) {
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(tbl.activeSessionToken);
-                        alert(`Session Code ${tbl.activeSessionToken} copied for Table #${tbl.tableNumber}!`);
+                        toast.success(`Session Code ${tbl.activeSessionToken} copied for Table #${tbl.tableNumber}!`);
                       }}
                       className="btn-secondary"
                       style={{ padding: '0.2rem 0.5rem', fontSize: '0.7rem', background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.4)' }}

@@ -19,6 +19,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import com.qr_restaurant.qr_restaurant_backend.model.enums.SessionStatus;
+import com.qr_restaurant.qr_restaurant_backend.security.SecurityUtil;
 
 @Service
 @RequiredArgsConstructor
@@ -32,30 +33,20 @@ public class ManagerService {
     private final RestaurantRepository restaurantRepository;
     private final CustomerService customerService;
 
-    private Restaurant getRestaurantOrDefault(Long restaurantId) {
-        if (restaurantId != null) {
-            return restaurantRepository.findById(restaurantId)
-                    .orElseGet(this::getDefaultRestaurant);
-        }
-        return getDefaultRestaurant();
-    }
-
-    private Restaurant getDefaultRestaurant() {
-        return restaurantRepository.findBySlug("gourmet-bistro")
-                .orElseGet(() -> restaurantRepository.findAll().stream().findFirst().orElse(null));
+    private Restaurant getAuthenticatedRestaurant() {
+        Long restaurantId = SecurityUtil.getRequiredRestaurantId();
+        return restaurantRepository.findById(restaurantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Restaurant ID " + restaurantId + " not found"));
     }
 
     // --- Categories ---
     public List<Category> getAllCategories() {
-        return getAllCategories(null);
+        Restaurant restaurant = getAuthenticatedRestaurant();
+        return categoryRepository.findByRestaurantIdOrderByDisplayOrderAsc(restaurant.getId());
     }
 
-    public List<Category> getAllCategories(Long restaurantId) {
-        Restaurant restaurant = getRestaurantOrDefault(restaurantId);
-        if (restaurant != null) {
-            return categoryRepository.findByRestaurantIdOrderByDisplayOrderAsc(restaurant.getId());
-        }
-        return categoryRepository.findAllByOrderByDisplayOrderAsc();
+    public List<Category> getAllCategories(Long ignoredRestaurantId) {
+        return getAllCategories();
     }
 
     public Category createCategory(CategoryRequestDto dto) {
@@ -63,14 +54,10 @@ public class ManagerService {
     }
 
     @Transactional
-    public Category createCategory(CategoryRequestDto dto, Long restaurantId) {
-        Restaurant restaurant = getRestaurantOrDefault(restaurantId);
-        if (restaurant != null) {
-            if (categoryRepository.findByNameAndRestaurantId(dto.getName(), restaurant.getId()).isPresent()) {
-                throw new BadRequestException("Category '" + dto.getName() + "' already exists for this restaurant");
-            }
-        } else if (categoryRepository.findByName(dto.getName()).isPresent()) {
-            throw new BadRequestException("Category '" + dto.getName() + "' already exists");
+    public Category createCategory(CategoryRequestDto dto, Long ignoredRestaurantId) {
+        Restaurant restaurant = getAuthenticatedRestaurant();
+        if (categoryRepository.findByNameAndRestaurantId(dto.getName(), restaurant.getId()).isPresent()) {
+            throw new BadRequestException("Category '" + dto.getName() + "' already exists for this restaurant");
         }
 
         Category category = Category.builder()
@@ -84,8 +71,14 @@ public class ManagerService {
 
     @Transactional
     public Category updateCategory(Long id, CategoryRequestDto dto) {
+        Restaurant restaurant = getAuthenticatedRestaurant();
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category ID " + id + " not found"));
+
+        if (category.getRestaurant() == null || !category.getRestaurant().getId().equals(restaurant.getId())) {
+            throw new BadRequestException("Category ID " + id + " does not belong to your restaurant");
+        }
+
         category.setName(dto.getName());
         if (dto.getDisplayOrder() != null) category.setDisplayOrder(dto.getDisplayOrder());
         if (dto.getIsActive() != null) category.setIsActive(dto.getIsActive());
@@ -94,22 +87,25 @@ public class ManagerService {
 
     @Transactional
     public void deleteCategory(Long id) {
+        Restaurant restaurant = getAuthenticatedRestaurant();
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category ID " + id + " not found"));
+
+        if (category.getRestaurant() == null || !category.getRestaurant().getId().equals(restaurant.getId())) {
+            throw new BadRequestException("Category ID " + id + " does not belong to your restaurant");
+        }
+
         categoryRepository.delete(category);
     }
 
     // --- Dishes ---
     public List<Dish> getAllDishes() {
-        return getAllDishes(null);
+        Restaurant restaurant = getAuthenticatedRestaurant();
+        return dishRepository.findByRestaurantId(restaurant.getId());
     }
 
-    public List<Dish> getAllDishes(Long restaurantId) {
-        Restaurant restaurant = getRestaurantOrDefault(restaurantId);
-        if (restaurant != null) {
-            return dishRepository.findByRestaurantId(restaurant.getId());
-        }
-        return dishRepository.findAll();
+    public List<Dish> getAllDishes(Long ignoredRestaurantId) {
+        return getAllDishes();
     }
 
     public Dish createDish(DishRequestDto dto) {
@@ -117,13 +113,13 @@ public class ManagerService {
     }
 
     @Transactional
-    public Dish createDish(DishRequestDto dto, Long restaurantId) {
+    public Dish createDish(DishRequestDto dto, Long ignoredRestaurantId) {
+        Restaurant restaurant = getAuthenticatedRestaurant();
         Category category = categoryRepository.findById(dto.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category ID " + dto.getCategoryId() + " not found"));
 
-        Restaurant restaurant = getRestaurantOrDefault(restaurantId);
-        if (restaurant == null) {
-            restaurant = category.getRestaurant();
+        if (category.getRestaurant() == null || !category.getRestaurant().getId().equals(restaurant.getId())) {
+            throw new BadRequestException("Category ID " + dto.getCategoryId() + " does not belong to your restaurant");
         }
 
         Dish dish = Dish.builder()
@@ -142,11 +138,20 @@ public class ManagerService {
 
     @Transactional
     public Dish updateDish(Long id, DishRequestDto dto) {
+        Restaurant restaurant = getAuthenticatedRestaurant();
         Dish dish = dishRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Dish ID " + id + " not found"));
 
+        if (dish.getRestaurant() == null || !dish.getRestaurant().getId().equals(restaurant.getId())) {
+            throw new BadRequestException("Dish ID " + id + " does not belong to your restaurant");
+        }
+
         Category category = categoryRepository.findById(dto.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category ID " + dto.getCategoryId() + " not found"));
+
+        if (category.getRestaurant() == null || !category.getRestaurant().getId().equals(restaurant.getId())) {
+            throw new BadRequestException("Category ID " + dto.getCategoryId() + " does not belong to your restaurant");
+        }
 
         dish.setName(dto.getName());
         dish.setDescription(dto.getDescription());
@@ -162,32 +167,35 @@ public class ManagerService {
 
     @Transactional
     public Dish toggleDishAvailability(Long id) {
+        Restaurant restaurant = getAuthenticatedRestaurant();
         Dish dish = dishRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Dish ID " + id + " not found"));
+
+        if (dish.getRestaurant() == null || !dish.getRestaurant().getId().equals(restaurant.getId())) {
+            throw new BadRequestException("Dish ID " + id + " does not belong to your restaurant");
+        }
+
         dish.setIsAvailable(!dish.getIsAvailable());
         return dishRepository.save(dish);
     }
 
     @Transactional
     public void deleteDish(Long id) {
+        Restaurant restaurant = getAuthenticatedRestaurant();
         Dish dish = dishRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Dish ID " + id + " not found"));
+
+        if (dish.getRestaurant() == null || !dish.getRestaurant().getId().equals(restaurant.getId())) {
+            throw new BadRequestException("Dish ID " + id + " does not belong to your restaurant");
+        }
+
         dishRepository.delete(dish);
     }
 
     // --- Tables & QR Code ---
     public List<RestaurantTable> getAllTables() {
-        return getAllTables(null);
-    }
-
-    public List<RestaurantTable> getAllTables(Long restaurantId) {
-        Restaurant restaurant = getRestaurantOrDefault(restaurantId);
-        List<RestaurantTable> tables;
-        if (restaurant != null) {
-            tables = tableRepository.findByRestaurantIdOrderByTableNumberAsc(restaurant.getId());
-        } else {
-            tables = tableRepository.findAllByOrderByTableNumberAsc();
-        }
+        Restaurant restaurant = getAuthenticatedRestaurant();
+        List<RestaurantTable> tables = tableRepository.findByRestaurantIdOrderByTableNumberAsc(restaurant.getId());
 
         for (RestaurantTable table : tables) {
             TableSession activeSession = sessionRepository.findByTableIdAndStatus(table.getId(), SessionStatus.ACTIVE).orElse(null);
@@ -198,22 +206,22 @@ public class ManagerService {
         return tables;
     }
 
+    public List<RestaurantTable> getAllTables(Long ignoredRestaurantId) {
+        return getAllTables();
+    }
+
     public RestaurantTable createTable(TableRequestDto dto) {
         return createTable(dto, null);
     }
 
     @Transactional
-    public RestaurantTable createTable(TableRequestDto dto, Long restaurantId) {
-        Restaurant restaurant = getRestaurantOrDefault(restaurantId);
-        if (restaurant != null) {
-            if (tableRepository.findByRestaurantIdAndTableNumber(restaurant.getId(), dto.getTableNumber()).isPresent()) {
-                throw new BadRequestException("Table #" + dto.getTableNumber() + " already exists for this restaurant");
-            }
-        } else if (tableRepository.findByTableNumber(dto.getTableNumber()).isPresent()) {
-            throw new BadRequestException("Table #" + dto.getTableNumber() + " already exists");
+    public RestaurantTable createTable(TableRequestDto dto, Long ignoredRestaurantId) {
+        Restaurant restaurant = getAuthenticatedRestaurant();
+        if (tableRepository.findByRestaurantIdAndTableNumber(restaurant.getId(), dto.getTableNumber()).isPresent()) {
+            throw new BadRequestException("Table #" + dto.getTableNumber() + " already exists for this restaurant");
         }
 
-        String slug = restaurant != null ? restaurant.getSlug().toUpperCase() : "REST";
+        String slug = restaurant.getSlug() != null ? restaurant.getSlug().toUpperCase() : "REST";
         String qrToken = "QR-" + slug + "-TBL-" + dto.getTableNumber() + "-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
 
         RestaurantTable table = RestaurantTable.builder()
@@ -228,26 +236,32 @@ public class ManagerService {
 
     @Transactional
     public RestaurantTable regenerateQrToken(Long tableId) {
+        Restaurant restaurant = getAuthenticatedRestaurant();
         RestaurantTable table = tableRepository.findById(tableId)
                 .orElseThrow(() -> new ResourceNotFoundException("Table ID " + tableId + " not found"));
-        String slug = table.getRestaurant() != null ? table.getRestaurant().getSlug().toUpperCase() : "REST";
+
+        if (table.getRestaurant() == null || !table.getRestaurant().getId().equals(restaurant.getId())) {
+            throw new BadRequestException("Table ID " + tableId + " does not belong to your restaurant");
+        }
+
+        String slug = restaurant.getSlug() != null ? restaurant.getSlug().toUpperCase() : "REST";
         table.setQrToken("QR-" + slug + "-TBL-" + table.getTableNumber() + "-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase());
         return tableRepository.save(table);
     }
 
     @Transactional
     public RestaurantTable updateTable(Long id, TableRequestDto dto) {
+        Restaurant restaurant = getAuthenticatedRestaurant();
         RestaurantTable table = tableRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Table ID " + id + " not found"));
 
+        if (table.getRestaurant() == null || !table.getRestaurant().getId().equals(restaurant.getId())) {
+            throw new BadRequestException("Table ID " + id + " does not belong to your restaurant");
+        }
+
         if (dto.getTableNumber() != null && !dto.getTableNumber().equals(table.getTableNumber())) {
-            Long restId = table.getRestaurant() != null ? table.getRestaurant().getId() : null;
-            if (restId != null) {
-                if (tableRepository.findByRestaurantIdAndTableNumber(restId, dto.getTableNumber()).isPresent()) {
-                    throw new BadRequestException("Table #" + dto.getTableNumber() + " already exists for this restaurant");
-                }
-            } else if (tableRepository.findByTableNumber(dto.getTableNumber()).isPresent()) {
-                throw new BadRequestException("Table #" + dto.getTableNumber() + " already exists");
+            if (tableRepository.findByRestaurantIdAndTableNumber(restaurant.getId(), dto.getTableNumber()).isPresent()) {
+                throw new BadRequestException("Table #" + dto.getTableNumber() + " already exists for this restaurant");
             }
             table.setTableNumber(dto.getTableNumber());
         }
@@ -261,48 +275,48 @@ public class ManagerService {
 
     @Transactional
     public void deleteTable(Long id) {
+        Restaurant restaurant = getAuthenticatedRestaurant();
         RestaurantTable table = tableRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Table ID " + id + " not found"));
+
+        if (table.getRestaurant() == null || !table.getRestaurant().getId().equals(restaurant.getId())) {
+            throw new BadRequestException("Table ID " + id + " does not belong to your restaurant");
+        }
+
         tableRepository.delete(table);
     }
 
     // --- Sales & Analytics ---
     public SalesSummaryDto getSalesSummary() {
-        return getSalesSummary(null);
-    }
-
-    public SalesSummaryDto getSalesSummary(Long restaurantId) {
-        Restaurant restaurant = getRestaurantOrDefault(restaurantId);
-        Long rId = restaurant != null ? restaurant.getId() : null;
+        Restaurant restaurant = getAuthenticatedRestaurant();
+        Long rId = restaurant.getId();
 
         LocalDateTime startOfDay = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
         LocalDateTime startOfYesterday = startOfDay.minusDays(1);
 
-        BigDecimal todaySales = rId != null ? orderRepository.calculateTotalSalesSinceForRestaurant(startOfDay, rId) : orderRepository.calculateTotalSalesSince(startOfDay);
+        BigDecimal todaySales = orderRepository.calculateTotalSalesSinceForRestaurant(startOfDay, rId);
         if (todaySales == null) todaySales = BigDecimal.ZERO;
 
-        Long todayOrders = rId != null ? orderRepository.countOrdersSinceForRestaurant(startOfDay, rId) : orderRepository.countOrdersSince(startOfDay);
+        Long todayOrders = orderRepository.countOrdersSinceForRestaurant(startOfDay, rId);
         if (todayOrders == null) todayOrders = 0L;
 
-        BigDecimal yesterdaySales = rId != null ? orderRepository.calculateTotalSalesBetweenForRestaurant(startOfYesterday, startOfDay, rId) : orderRepository.calculateTotalSalesBetween(startOfYesterday, startOfDay);
+        BigDecimal yesterdaySales = orderRepository.calculateTotalSalesBetweenForRestaurant(startOfYesterday, startOfDay, rId);
         if (yesterdaySales == null) yesterdaySales = BigDecimal.ZERO;
 
-        Long yesterdayOrders = rId != null ? orderRepository.countOrdersBetweenForRestaurant(startOfYesterday, startOfDay, rId) : orderRepository.countOrdersBetween(startOfYesterday, startOfDay);
+        Long yesterdayOrders = orderRepository.countOrdersBetweenForRestaurant(startOfYesterday, startOfDay, rId);
         if (yesterdayOrders == null) yesterdayOrders = 0L;
 
-        BigDecimal allTimeSales = rId != null ? orderRepository.calculateAllTimeSalesForRestaurant(rId) : orderRepository.calculateAllTimeSales();
+        BigDecimal allTimeSales = orderRepository.calculateAllTimeSalesForRestaurant(rId);
         if (allTimeSales == null) allTimeSales = BigDecimal.ZERO;
 
-        Long allTimeOrders = rId != null ? orderRepository.countAllTimeOrdersForRestaurant(rId) : orderRepository.countAllTimeOrders();
+        Long allTimeOrders = orderRepository.countAllTimeOrdersForRestaurant(rId);
         if (allTimeOrders == null) allTimeOrders = 0L;
 
-        List<RestaurantTable> tables = rId != null ? tableRepository.findByRestaurantIdOrderByTableNumberAsc(rId) : tableRepository.findAll();
+        List<RestaurantTable> tables = tableRepository.findByRestaurantIdOrderByTableNumberAsc(rId);
         long activeTables = tables.stream().filter(t -> t.getStatus() != TableStatus.AVAILABLE).count();
 
         List<OrderStatus> pendingStatuses = Arrays.asList(OrderStatus.PLACED, OrderStatus.PREPARING, OrderStatus.READY);
-        long pendingOrders = rId != null ?
-                orderRepository.findByRestaurantIdAndStatusInOrderByCreatedAtAsc(rId, pendingStatuses).size() :
-                orderRepository.findByStatusInOrderByCreatedAtAsc(pendingStatuses).size();
+        long pendingOrders = orderRepository.findByRestaurantIdAndStatusInOrderByCreatedAtAsc(rId, pendingStatuses).size();
 
         return SalesSummaryDto.builder()
                 .todaySales(todaySales)
@@ -317,15 +331,13 @@ public class ManagerService {
                 .build();
     }
 
-    public List<OrderResponseDto> getAllOrders() {
-        return getAllOrders(null);
+    public SalesSummaryDto getSalesSummary(Long ignoredRestaurantId) {
+        return getSalesSummary();
     }
 
-    public List<OrderResponseDto> getAllOrders(Long restaurantId) {
-        Restaurant restaurant = getRestaurantOrDefault(restaurantId);
-        List<Order> allRawOrders = restaurant != null ?
-                orderRepository.findByRestaurantIdOrderByCreatedAtDesc(restaurant.getId()) :
-                orderRepository.findAllByOrderByCreatedAtDesc();
+    public List<OrderResponseDto> getAllOrders() {
+        Restaurant restaurant = getAuthenticatedRestaurant();
+        List<Order> allRawOrders = orderRepository.findByRestaurantIdOrderByCreatedAtDesc(restaurant.getId());
 
         // Group non-cancelled orders by TableSession
         Map<Long, List<Order>> ordersBySession = allRawOrders.stream()
@@ -422,5 +434,9 @@ public class ManagerService {
         consolidatedList.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
 
         return consolidatedList;
+    }
+
+    public List<OrderResponseDto> getAllOrders(Long ignoredRestaurantId) {
+        return getAllOrders();
     }
 }

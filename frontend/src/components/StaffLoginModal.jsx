@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Lock, User, ShieldCheck } from 'lucide-react';
+import { X, Lock, User, ShieldCheck, ArrowRight, ChefHat, ConciergeBell, LayoutDashboard } from 'lucide-react';
 import { authApi } from '../services/api';
 
 export default function StaffLoginModal({ isOpen, onClose, onLoginSuccess }) {
@@ -20,7 +20,7 @@ export default function StaffLoginModal({ isOpen, onClose, onLoginSuccess }) {
       onLoginSuccess(data);
       onClose();
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
+      setError(err.message || 'Login failed. Please verify your credentials.');
     } finally {
       setLoading(false);
     }
@@ -29,51 +29,72 @@ export default function StaffLoginModal({ isOpen, onClose, onLoginSuccess }) {
   const handleQuickFill = (user, pass) => {
     setUsername(user);
     setPassword(pass);
+    setError('');
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      background: 'rgba(0, 0, 0, 0.75)',
-      backdropFilter: 'blur(8px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 100,
-      padding: '1rem'
-    }}>
-      <div className="glass-panel animate-fade-in" style={{
-        maxWidth: '420px',
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="login-modal-title"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0, 0, 0, 0.78)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 100,
+        padding: '1rem'
+      }}
+    >
+      <div className="glass-panel-elevated animate-pop-in" style={{
+        maxWidth: '440px',
         width: '100%',
-        padding: '2rem',
+        padding: '2.25rem',
         position: 'relative'
       }}>
-        <button onClick={onClose} style={{
-          position: 'absolute',
-          top: '1rem',
-          right: '1rem',
-          background: 'none',
-          color: 'var(--text-muted)',
-          cursor: 'pointer'
-        }}>
-          <X size={20} />
+        <button
+          onClick={onClose}
+          aria-label="Close dialog"
+          style={{
+            position: 'absolute',
+            top: '1.25rem',
+            right: '1.25rem',
+            background: 'rgba(255, 255, 255, 0.08)',
+            border: 'none',
+            borderRadius: '50%',
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--text-muted)',
+            cursor: 'pointer'
+          }}
+        >
+          <X size={18} />
         </button>
 
-        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
           <div style={{
             display: 'inline-flex',
-            padding: '0.8rem',
+            padding: '0.9rem',
             background: 'rgba(16, 185, 129, 0.15)',
             color: '#10b981',
-            borderRadius: '12px',
-            marginBottom: '0.8rem'
+            borderRadius: '16px',
+            marginBottom: '0.9rem',
+            boxShadow: 'var(--shadow-glow-emerald)'
           }}>
             <ShieldCheck size={32} />
           </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#fff' }}>Staff Authentication</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
-            Access restricted portal features
+          <h2 id="login-modal-title" style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-heading)' }}>
+            Staff Authentication
+          </h2>
+          <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+            Sign in with your role-verified credentials
           </p>
         </div>
 
@@ -81,86 +102,143 @@ export default function StaffLoginModal({ isOpen, onClose, onLoginSuccess }) {
           <div style={{
             background: 'rgba(244, 63, 94, 0.15)',
             color: '#f87171',
-            padding: '0.75rem',
-            borderRadius: '8px',
-            fontSize: '0.85rem',
-            marginBottom: '1rem',
-            border: '1px solid rgba(244, 63, 94, 0.3)'
+            padding: '0.85rem 1rem',
+            borderRadius: '10px',
+            fontSize: '0.86rem',
+            marginBottom: '1.25rem',
+            border: '1px solid rgba(244, 63, 94, 0.35)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
           }}>
-            {error}
+            <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem', fontWeight: 600 }}>
-              Username
+            <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.45rem', fontWeight: 700 }}>
+              Staff Username
             </label>
             <div style={{ position: 'relative' }}>
-              <User size={18} style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+              <User size={18} style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 0.75rem 0.75rem 2.5rem',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid var(--border-glass)',
-                  borderRadius: '8px',
-                  color: '#fff',
-                  fontSize: '0.9rem',
-                  outline: 'none'
-                }}
+                className="input-glass"
+                style={{ paddingLeft: '2.6rem' }}
+                placeholder="Enter username"
               />
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem', fontWeight: 600 }}>
+            <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.45rem', fontWeight: 700 }}>
               Password
             </label>
             <div style={{ position: 'relative' }}>
-              <Lock size={18} style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+              <Lock size={18} style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 0.75rem 0.75rem 2.5rem',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid var(--border-glass)',
-                  borderRadius: '8px',
-                  color: '#fff',
-                  fontSize: '0.9rem',
-                  outline: 'none'
-                }}
+                className="input-glass"
+                style={{ paddingLeft: '2.6rem' }}
+                placeholder="Enter password"
               />
             </div>
           </div>
 
-          <button type="submit" disabled={loading} className="btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '0.5rem' }}>
-            {loading ? 'Authenticating...' : 'Sign In to Portal'}
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary"
+            style={{ width: '100%', marginTop: '0.5rem' }}
+          >
+            {loading ? 'Authenticating...' : (
+              <>
+                Sign In to Portal <ArrowRight size={17} />
+              </>
+            )}
           </button>
         </form>
 
-        {/* Demo Fill Quick Buttons */}
-        <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-glass)' }}>
-          <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: '0.5rem', textAlign: 'center' }}>
-            Quick Demo Login Accounts:
+        {/* Demo Fast Selection Bar */}
+        <div style={{ marginTop: '1.75rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-glass)' }}>
+          <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-dim)', marginBottom: '0.75rem', textAlign: 'center', fontWeight: 600 }}>
+            Quick Demo Accounts:
           </span>
-          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-            <button onClick={() => handleQuickFill('admin', 'admin123')} className="btn-secondary" style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem' }}>
-              Manager
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
+            <button
+              type="button"
+              onClick={() => handleQuickFill('admin', 'admin123')}
+              className="btn-secondary"
+              style={{
+                padding: '0.5rem 0.2rem',
+                fontSize: '0.74rem',
+                flexDirection: 'column',
+                gap: '0.25rem',
+                minHeight: '52px',
+                border: username === 'admin' ? '1px solid var(--primary)' : '1px solid var(--border-glass)',
+                color: username === 'admin' ? 'var(--primary)' : 'var(--text-muted)'
+              }}
+            >
+              <LayoutDashboard size={14} />
+              <span>Admin</span>
             </button>
-            <button onClick={() => handleQuickFill('chef', 'kitchen123')} className="btn-secondary" style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem' }}>
-              Kitchen
+            <button
+              type="button"
+              onClick={() => handleQuickFill('manager1', 'admin123')}
+              className="btn-secondary"
+              style={{
+                padding: '0.5rem 0.2rem',
+                fontSize: '0.74rem',
+                flexDirection: 'column',
+                gap: '0.25rem',
+                minHeight: '52px',
+                border: username === 'manager1' ? '1px solid var(--primary)' : '1px solid var(--border-glass)',
+                color: username === 'manager1' ? 'var(--primary)' : 'var(--text-muted)'
+              }}
+            >
+              <Store size={14} />
+              <span>Fine Diner</span>
             </button>
-            <button onClick={() => handleQuickFill('waiter', 'waiter123')} className="btn-secondary" style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem' }}>
-              Waiter
+            <button
+              type="button"
+              onClick={() => handleQuickFill('chef', 'kitchen123')}
+              className="btn-secondary"
+              style={{
+                padding: '0.5rem 0.2rem',
+                fontSize: '0.74rem',
+                flexDirection: 'column',
+                gap: '0.25rem',
+                minHeight: '52px',
+                border: username === 'chef' ? '1px solid var(--primary)' : '1px solid var(--border-glass)',
+                color: username === 'chef' ? 'var(--primary)' : 'var(--text-muted)'
+              }}
+            >
+              <ChefHat size={14} />
+              <span>Kitchen</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickFill('waiter', 'waiter123')}
+              className="btn-secondary"
+              style={{
+                padding: '0.5rem 0.2rem',
+                fontSize: '0.74rem',
+                flexDirection: 'column',
+                gap: '0.25rem',
+                minHeight: '52px',
+                border: username === 'waiter' ? '1px solid var(--primary)' : '1px solid var(--border-glass)',
+                color: username === 'waiter' ? 'var(--primary)' : 'var(--text-muted)'
+              }}
+            >
+              <ConciergeBell size={14} />
+              <span>Waiter</span>
             </button>
           </div>
         </div>

@@ -15,9 +15,11 @@ export default function QRScannerModal({ isOpen, onClose }) {
   useEffect(() => {
     if (isOpen) {
       authApi.getRestaurants().then((data) => {
-        setRestaurants(data || []);
         if (data && data.length > 0) {
-          setSelectedRestSlug(data[0].slug);
+          const filtered = data.filter(r => r.name?.toLowerCase() !== 'restaurant 1' && r.slug !== 'restaurant-1');
+          setRestaurants(filtered);
+          const fineDiner = filtered.find(r => r.slug === 'fine-diner' || r.name?.toLowerCase().includes('fine diner'));
+          setSelectedRestSlug(fineDiner ? fineDiner.slug : filtered[0]?.slug || '');
         }
       }).catch(() => {});
     }
@@ -90,16 +92,16 @@ export default function QRScannerModal({ isOpen, onClose }) {
       padding: '1rem',
       animation: 'fadeIn 0.2s ease-out',
     }}>
-      <div style={{
-        backgroundColor: '#1e293b',
-        color: '#f8fafc',
-        borderRadius: '1.25rem',
-        maxWidth: '520px',
-        width: '100%',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1)',
-        padding: '1.75rem',
-        position: 'relative',
-      }}>
+      <div
+        className="glass-panel-elevated"
+        style={{
+          borderRadius: '1.25rem',
+          maxWidth: '520px',
+          width: '100%',
+          padding: '1.75rem',
+          position: 'relative',
+        }}
+      >
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -117,22 +119,25 @@ export default function QRScannerModal({ isOpen, onClose }) {
               📷
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: '800' }}>QR Code Scanner</h3>
-              <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>Scan table QR code to start ordering</p>
+              <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: '800', color: 'var(--text-heading)' }}>QR Code Scanner</h3>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Scan table QR code to start ordering</p>
             </div>
           </div>
 
           <button
             onClick={handleClose}
             style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              color: '#94a3b8',
+              background: 'var(--bg-glass)',
+              border: '1px solid var(--border-glass)',
+              color: 'var(--text-muted)',
               fontSize: '1.2rem',
               width: '36px',
               height: '36px',
               borderRadius: '50%',
               cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
             ✕
@@ -144,10 +149,10 @@ export default function QRScannerModal({ isOpen, onClose }) {
           position: 'relative',
           width: '100%',
           height: '240px',
-          backgroundColor: '#0f172a',
+          backgroundColor: 'var(--bg-card)',
           borderRadius: '1rem',
           overflow: 'hidden',
-          border: '2px dashed #334155',
+          border: '2px dashed var(--border-glass)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -167,7 +172,7 @@ export default function QRScannerModal({ isOpen, onClose }) {
           {!isScanning ? (
             <div style={{ textAlign: 'center', padding: '1rem' }}>
               <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📷</div>
-              <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', color: '#cbd5e1' }}>
+              <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
                 Use device camera to scan Table QR Code
               </p>
               <button
@@ -208,10 +213,10 @@ export default function QRScannerModal({ isOpen, onClose }) {
 
         {/* Quick Restaurant & Table Launcher */}
         <div style={{
-          backgroundColor: 'rgba(15, 23, 42, 0.6)',
+          backgroundColor: 'var(--bg-glass)',
           padding: '1rem',
           borderRadius: '0.85rem',
-          border: '1px solid rgba(255, 255, 255, 0.05)',
+          border: '1px solid var(--border-glass)',
           marginBottom: '1rem',
         }}>
           <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#fb923c', textTransform: 'uppercase', marginBottom: '0.75rem', letterSpacing: '0.05em' }}>
@@ -220,7 +225,7 @@ export default function QRScannerModal({ isOpen, onClose }) {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px', gap: '0.75rem', marginBottom: '0.75rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '0.25rem' }}>Select Restaurant</label>
+              <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Select Restaurant</label>
               <select
                 value={selectedRestSlug}
                 onChange={(e) => setSelectedRestSlug(e.target.value)}
@@ -228,9 +233,9 @@ export default function QRScannerModal({ isOpen, onClose }) {
                   width: '100%',
                   padding: '0.5rem',
                   borderRadius: '0.5rem',
-                  backgroundColor: '#0f172a',
-                  border: '1px solid #334155',
-                  color: '#fff',
+                  backgroundColor: 'var(--input-bg)',
+                  border: '1px solid var(--input-border)',
+                  color: 'var(--text-main)',
                   fontSize: '0.85rem',
                   outline: 'none',
                 }}
@@ -242,7 +247,7 @@ export default function QRScannerModal({ isOpen, onClose }) {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '0.25rem' }}>Table #</label>
+              <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Table #</label>
               <input
                 type="number"
                 min="1"
@@ -253,9 +258,9 @@ export default function QRScannerModal({ isOpen, onClose }) {
                   width: '100%',
                   padding: '0.5rem',
                   borderRadius: '0.5rem',
-                  backgroundColor: '#0f172a',
-                  border: '1px solid #334155',
-                  color: '#fff',
+                  backgroundColor: 'var(--input-bg)',
+                  border: '1px solid var(--input-border)',
+                  color: 'var(--text-main)',
                   fontSize: '0.85rem',
                   outline: 'none',
                 }}
@@ -292,9 +297,9 @@ export default function QRScannerModal({ isOpen, onClose }) {
               flex: 1,
               padding: '0.5rem 0.75rem',
               borderRadius: '0.5rem',
-              backgroundColor: '#0f172a',
-              border: '1px solid #334155',
-              color: '#fff',
+              backgroundColor: 'var(--input-bg)',
+              border: '1px solid var(--input-border)',
+              color: 'var(--text-main)',
               fontSize: '0.85rem',
               outline: 'none',
             }}
@@ -304,10 +309,10 @@ export default function QRScannerModal({ isOpen, onClose }) {
             style={{
               padding: '0.5rem 1rem',
               borderRadius: '0.5rem',
-              backgroundColor: '#334155',
-              color: '#fff',
+              backgroundColor: 'var(--btn-secondary-bg)',
+              color: 'var(--text-main)',
+              border: '1px solid var(--border-glass)',
               fontWeight: '600',
-              border: 'none',
               cursor: 'pointer',
               fontSize: '0.85rem',
             }}
