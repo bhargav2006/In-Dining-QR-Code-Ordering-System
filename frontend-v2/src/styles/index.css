@@ -1,0 +1,76 @@
+@import "tailwindcss";
+@import "./tokens.css";
+@import "./themes.css";
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--gds-font-sans);
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    transition: background-color var(--gds-motion-standard), color var(--gds-motion-standard);
+  }
+}
+
+/* Semantic helper classes for Global Design System tokens */
+.bg-theme {
+  background-color: var(--color-bg);
+}
+
+.bg-surface {
+  background-color: var(--color-surface);
+}
+
+.bg-surface-raised {
+  background-color: var(--color-surface-raised);
+}
+
+.bg-surface-sunken {
+  background-color: var(--color-surface-sunken);
+}
+
+.text-theme {
+  color: var(--color-text);
+}
+
+.text-theme-muted {
+  color: var(--color-text-muted);
+}
+
+.text-theme-subtle {
+  color: var(--color-text-subtle);
+}
+
+.border-theme {
+  border-color: var(--color-border);
+}
+
+.border-theme-control {
+  border-color: var(--color-control-border);
+}
+
+.bg-primary-brand {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.bg-primary-brand:hover {
+  background-color: var(--color-primary-hover);
+}
+
+.bg-primary-pill {
+  background-color: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+}
+
+.bg-gold-pill {
+  background-color: var(--color-tertiary-container);
+  color: var(--color-on-tertiary-container);
+}
+

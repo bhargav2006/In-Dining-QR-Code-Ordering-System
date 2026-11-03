@@ -1,0 +1,204 @@
+/**
+ * Verdant & Obsidian Global Design System — themes.css
+ * Universal Semantic Design Tokens for Light (Verdant Signal) & Dark (Obsidian & Forest)
+ */
+
+/* ============================================================
+   1. VERDANT SIGNAL LIGHT THEME (:root & [data-theme="light"])
+   ============================================================ */
+:root,
+[data-theme="light"],
+html[data-theme="light"] {
+  color-scheme: light;
+
+  /* Foundation Surfaces */
+  --color-bg: #F6F8F5;
+  --color-bg-rgb: 246, 248, 245;
+  --color-surface: #FFFFFF;
+  --color-surface-raised: #FFFFFF;
+  --color-surface-sunken: #EAF0ED;
+  --color-sidebar: #F0F5F2;
+  --color-sidebar-border: #D6E1DD;
+
+  /* Typography / Foreground */
+  --color-text: #193238;
+  --color-text-muted: #53666A;
+  --color-text-subtle: #5B7072;
+  --color-text-inverse: #FFFFFF;
+
+  /* Borders & Dividers */
+  --color-border: #D6E1DD;
+  --color-control-border: #7C928C;
+  --color-divider: rgba(214, 225, 221, 0.75);
+
+  /* Primary Brand (Saturated Botanical Teal) */
+  --color-primary: #0F766E;
+  --color-primary-hover: #115E59;
+  --color-primary-active: #0A3D39;
+  --color-on-primary: #FFFFFF;
+  --color-primary-container: #D9F1EC;
+  --color-on-primary-container: #124F4A;
+
+  /* Secondary Brand (Slate Teal) */
+  --color-secondary: #315E67;
+  --color-secondary-hover: #254B53;
+  --color-on-secondary: #FFFFFF;
+  --color-secondary-container: #E1ECEC;
+  --color-on-secondary-container: #203D43;
+
+  /* Tertiary Brand (Saffron / Antique Gold) */
+  --color-tertiary: #8B5A00;
+  --color-tertiary-hover: #744A00;
+  --color-on-tertiary: #FFFFFF;
+  --color-tertiary-container: #F8E8C6;
+  --color-on-tertiary-container: #5D3F0A;
+
+  /* Accents */
+  --color-accent-lilac: #7168C5;
+  --color-accent-coral: #A94E36;
+  --color-accent-mint: #2E8B57;
+
+  /* Semantic Feedback */
+  --color-success: #217A50;
+  --color-success-bg: #E6F5EC;
+  --color-success-border: #9AD2B5;
+  --color-warning: #8B5A00;
+  --color-warning-bg: #FFF3D6;
+  --color-warning-border: #E4C586;
+  --color-error: #B42332;
+  --color-error-bg: #FCEBEC;
+  --color-error-border: #F3AEB5;
+  --color-info: #245FC7;
+  --color-info-bg: #EAF2FF;
+  --color-info-border: #AFC7F7;
+
+  /* Focus, Selection & Overlays */
+  --color-focus: #245FC7;
+  --color-selection-bg: #D9F1EC;
+  --color-selection-text: #0F766E;
+  --color-overlay: rgba(16, 38, 42, 0.48);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(25, 50, 56, 0.08);
+  --shadow-card: 0 6px 24px rgba(25, 50, 56, 0.06);
+  --shadow-popover: 0 12px 32px rgba(25, 50, 56, 0.12);
+  --shadow-primary: 0 8px 24px rgba(15, 118, 110, 0.18);
+  --shadow-photo: 0 4px 14px rgba(20, 50, 35, 0.08), 0 16px 36px -6px rgba(20, 50, 35, 0.14), 0 28px 56px -12px rgba(20, 50, 35, 0.12);
+
+  /* Ambient Lighting */
+  --ambient-glow-1: rgba(15, 118, 110, 0.10);
+  --ambient-glow-2: rgba(49, 94, 103, 0.08);
+  --ambient-glow-3: rgba(139, 131, 216, 0.05);
+
+  /* Component Aliases */
+  --nav-active-bg: var(--color-primary-container);
+  --nav-active-text: var(--color-on-primary-container);
+  --badge-bg: var(--color-secondary-container);
+  --badge-text: var(--color-on-secondary-container);
+  --card-bg: var(--color-surface);
+  --card-border: var(--color-border);
+  --card-border-hover: var(--color-primary);
+  --input-bg: var(--color-surface);
+  --input-border: var(--color-control-border);
+  --input-focus-border: var(--color-primary);
+}
+
+/* ============================================================
+   2. OBSIDIAN & FOREST DARK THEME ([data-theme="dark"])
+   ============================================================ */
+[data-theme="dark"],
+html[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Foundation Surfaces (Carbon Obsidian) */
+  --color-bg: #0E1111;
+  --color-bg-rgb: 14, 17, 17;
+  --color-surface: #141919;
+  --color-surface-raised: #1B2222;
+  --color-surface-sunken: #080A0A;
+  --color-sidebar: #0A0D0D;
+  --color-sidebar-border: #1F2726;
+
+  /* Typography / Foreground (Parchment & Muted Spruce) */
+  --color-text: #EAECEB;
+  --color-text-muted: #96A09E;
+  --color-text-subtle: #6B7674;
+  --color-text-inverse: #0E1111;
+
+  /* Borders & Dividers */
+  --color-border: #232B2B;
+  --color-control-border: #384646;
+  --color-divider: rgba(35, 43, 43, 0.85);
+
+  /* Primary Brand (Alpine Forest Green) */
+  --color-primary: #42946A;
+  --color-primary-hover: #52A87C;
+  --color-primary-active: #2D6A4F;
+  --color-on-primary: #FFFFFF;
+  --color-primary-container: #122C1F;
+  --color-on-primary-container: #A2E0C0;
+
+  /* Secondary Brand (Spruce Sage) */
+  --color-secondary: #709686;
+  --color-secondary-hover: #7E9F91;
+  --color-on-secondary: #0A1411;
+  --color-secondary-container: #15241F;
+  --color-on-secondary-container: #A8C7BA;
+
+  /* Tertiary Brand (Warm Champagne Gold) */
+  --color-tertiary: #CFA363;
+  --color-tertiary-hover: #DDB476;
+  --color-on-tertiary: #1A1407;
+  --color-tertiary-container: #2E2413;
+  --color-on-tertiary-container: #ECD3A8;
+
+  /* Accents */
+  --color-accent-lilac: #9F9BD4;
+  --color-accent-coral: #E28B75;
+  --color-accent-mint: #A7F3D0;
+
+  /* Semantic Feedback */
+  --color-success: #5EAA7C;
+  --color-success-bg: #10251B;
+  --color-success-border: #28583B;
+  --color-warning: #D6A756;
+  --color-warning-bg: #2A210F;
+  --color-warning-border: #684E1C;
+  --color-error: #E57373;
+  --color-error-bg: #2B1618;
+  --color-error-border: #752A2F;
+  --color-info: #7AA2D6;
+  --color-info-bg: #122030;
+  --color-info-border: #2C466C;
+
+  /* Focus, Selection & Overlays */
+  --color-focus: #42946A;
+  --color-selection-bg: #122C1F;
+  --color-selection-text: #A2E0C0;
+  --color-overlay: rgba(0, 0, 0, 0.75);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.55);
+  --shadow-card: 0 8px 28px rgba(0, 0, 0, 0.45);
+  --shadow-popover: 0 14px 36px rgba(0, 0, 0, 0.60);
+  --shadow-primary: 0 8px 26px rgba(66, 148, 106, 0.26);
+  --shadow-photo: 0 4px 12px rgba(0, 0, 0, 0.40), 0 16px 36px -8px rgba(0, 0, 0, 0.65), 0 32px 64px -16px rgba(0, 0, 0, 0.80);
+
+  /* Ambient Lighting */
+  --ambient-glow-1: rgba(66, 148, 106, 0.12);
+  --ambient-glow-2: rgba(50, 115, 80, 0.09);
+  --ambient-glow-3: rgba(207, 163, 99, 0.05);
+
+  /* Component Aliases */
+  --nav-active-bg: var(--color-primary-container);
+  --nav-active-text: var(--color-on-primary-container);
+  --badge-bg: var(--color-secondary-container);
+  --badge-text: var(--color-on-secondary-container);
+  --card-bg: var(--color-surface);
+  --card-border: var(--color-border);
+  --card-border-hover: var(--color-primary);
+  --input-bg: var(--color-surface-sunken);
+  --input-border: var(--color-control-border);
+  --input-focus-border: var(--color-primary);
+}
+
