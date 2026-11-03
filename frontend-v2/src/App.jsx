@@ -7,6 +7,7 @@ import { StaffAuthProvider } from './context/StaffAuthContext';
 import CustomerPortal from './pages/CustomerPortal';
 import LandingTableSelector from './pages/LandingTableSelector';
 import KitchenDisplay from './pages/KitchenDisplay';
+import WaiterPortal from './pages/WaiterPortal';
 
 export default function App() {
   return (
@@ -28,6 +29,11 @@ export default function App() {
                 <Route path="/kitchen" element={<KitchenDisplay />} />
                 <Route path="/kds" element={<Navigate to="/kitchen" replace />} />
                 <Route path="/staff/login" element={<KitchenDisplay />} />
+
+                {/* Waiter Floor Management Routes */}
+                <Route path="/waiter" element={<WaiterPortal />} />
+                <Route path="/floor" element={<Navigate to="/waiter" replace />} />
+                <Route path="/staff/waiter" element={<Navigate to="/waiter" replace />} />
 
                 {/* Catch-all redirect to Landing */}
                 <Route path="*" element={<Navigate to="/" replace />} />

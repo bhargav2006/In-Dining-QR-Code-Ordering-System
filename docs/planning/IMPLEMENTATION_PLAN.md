@@ -120,13 +120,16 @@ flowchart TD
 
 ---
 
-### Phase 6: Waiter Floor Portal
-- [ ] Dedicated route (`/waiter`).
-- [ ] **Floor Overview:** Grid of restaurant tables with real-time status indicators (`AVAILABLE`, `OCCUPIED`, `BILL_REQUESTED`, `CLEANING_NEEDED`).
-- [ ] **Pending Assistance Queue:** Alert banner displaying customer help calls with 1-click "Resolve" button.
-- [ ] **Ready-to-Serve Queue:** Alerts for dishes marked ready by kitchen with 1-click "Mark Served" action.
-- [ ] **Table Checkout Action:** Final checkout and table liberation button with confirmation modal.
-- [ ] 10-second smart polling.
+### Phase 6: Waiter Floor Portal (COMPLETED)
+- [x] Dedicated route (`/waiter`, `/floor`, `/staff/waiter`).
+- [x] **Floor Overview:** Grid of restaurant tables with real-time status indicators (`AVAILABLE`, `OCCUPIED`, `BILL_REQUESTED`, `CLEANING_NEEDED`).
+- [x] **Pending Assistance Queue:** Alert queue displaying customer help calls (`WATER`, `BILL_REQUEST`, `WAITER_HELP`, `CLEAN_TABLE`) with 1-click "Resolve" button.
+- [x] **Ready-to-Serve Queue:** Alerts for dishes marked ready by kitchen with 1-click "Mark Served" action.
+- [x] **Table Checkout Action:** Final checkout and table liberation workflow with itemized bill preview and confirmation modal.
+- [x] Role-protected station requiring `ROLE_WAITER` or `ROLE_ADMIN` (blocks unauthorized `ROLE_KITCHEN` and guest users).
+- [x] 10-second smart polling with visibility change pause/resume and connection status indicators (`FLOOR SYNC`, `RECONNECTING`, `OFFLINE`).
+- [x] Web Audio API bell chime for incoming ready food and assistance calls with mute toggle.
+- [x] Verified end-to-end with live Spring Boot backend, Playwright automated testing, and responsive audit across Desktop, Tablet, and Mobile.
 
 ---
 
