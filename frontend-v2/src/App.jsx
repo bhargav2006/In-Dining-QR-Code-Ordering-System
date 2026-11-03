@@ -8,6 +8,7 @@ import CustomerPortal from './pages/CustomerPortal';
 import LandingTableSelector from './pages/LandingTableSelector';
 import KitchenDisplay from './pages/KitchenDisplay';
 import WaiterPortal from './pages/WaiterPortal';
+import ManagerPortal from './pages/ManagerPortal';
 
 export default function App() {
   return (
@@ -34,6 +35,11 @@ export default function App() {
                 <Route path="/waiter" element={<WaiterPortal />} />
                 <Route path="/floor" element={<Navigate to="/waiter" replace />} />
                 <Route path="/staff/waiter" element={<Navigate to="/waiter" replace />} />
+
+                {/* Manager & Administration Routes */}
+                <Route path="/manager/*" element={<ManagerPortal />} />
+                <Route path="/admin" element={<Navigate to="/manager" replace />} />
+                <Route path="/staff/admin" element={<Navigate to="/manager" replace />} />
 
                 {/* Catch-all redirect to Landing */}
                 <Route path="*" element={<Navigate to="/" replace />} />

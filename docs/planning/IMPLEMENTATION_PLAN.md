@@ -133,13 +133,15 @@ flowchart TD
 
 ---
 
-### Phase 7: Manager & Administration Portal
-- [ ] Dedicated route (`/manager`).
-- [ ] **Analytics Dashboard:** Revenue KPI cards, total orders, average ticket size, active occupancy, top-selling dishes chart.
-- [ ] **Category Management:** Modal to add, edit, reorder, or delete menu categories.
-- [ ] **Dish Catalog Management:** Add/edit dishes, toggle availability (86ing items), edit prices, assign categories.
-- [ ] **Table & QR Management:** Add new tables, configure capacity, regenerate QR tokens, and generate printable QR code badges.
-- [ ] **Order History:** Paginated table of all restaurant orders with status filters.
+### Phase 7: Manager & Administration Portal (COMPLETED)
+- [x] Dedicated routes (`/manager`, `/manager/*`, `/admin`, `/staff/admin`).
+- [x] **Role Security & Access Control:** Protected by `ROLE_ADMIN`; non-admin staff (`ROLE_KITCHEN`, `ROLE_WAITER`) and unauthenticated guests are blocked with dedicated permission denial views.
+- [x] **Analytics Dashboard:** Real-time metrics synthesized directly from verified database orders (`todaySales`, `todayOrdersCount`, `allTimeSales`, `allTimeOrdersCount`, AOV, occupancy rate, and active kitchen tickets).
+- [x] **Category Management:** Full CRUD operations for menu categories (`GET`, `POST`, `PUT`, `DELETE /api/manager/categories`) with display order management and active visibility toggles.
+- [x] **Dish Catalog & 86 Management:** Full CRUD operations for dishes (`GET`, `POST`, `PUT`, `DELETE /api/manager/dishes`) with 1-click `86 Availability Toggle` (`PATCH /api/manager/dishes/{id}/toggle-availability`), price editing, category assignment, prep times, and live image previews.
+- [x] **Table & QR Code Management:** Full table lifecycle (`GET`, `POST`, `PUT`, `DELETE /api/manager/tables`) with live high-contrast SVG QR codes (`qrcode.react`), customer entry route verification (`/qr/:qrToken` & `/r/:slug/table/:num`), printable standee badges, and QR token regeneration (`POST /api/manager/tables/{id}/regenerate-qr`).
+- [x] **Order History & Receipts:** Consolidated historical audit log (`GET /api/manager/orders`) grouped by dining session with status filters (`ALL`, `COMPLETED`, `READY`, `PREPARING`, `CANCELLED`), order/table search, and itemized receipt inspection modals.
+- [x] **Responsive & Theme Verified:** Fully verified in `Obsidian & Forest Dark` and `Verdant Signal Light` across Desktop (1440x900), Tablet (768x1024), and Mobile (375x812) with zero overflow.
 
 ---
 

@@ -44,6 +44,8 @@ export function StaffAuthProvider({ children }) {
     : null;
   const isKitchenAuthorized = normalizedRole === 'ROLE_KITCHEN' || normalizedRole === 'ROLE_ADMIN';
   const isWaiterAuthorized = normalizedRole === 'ROLE_WAITER' || normalizedRole === 'ROLE_ADMIN';
+  const isAdminAuthorized = normalizedRole === 'ROLE_ADMIN';
+  const isManagerAuthorized = isAdminAuthorized;
 
   const value = {
     staffUser,
@@ -52,6 +54,8 @@ export function StaffAuthProvider({ children }) {
     isAuthenticated,
     isKitchenAuthorized,
     isWaiterAuthorized,
+    isAdminAuthorized,
+    isManagerAuthorized,
     role: normalizedRole,
     login,
     logout,
