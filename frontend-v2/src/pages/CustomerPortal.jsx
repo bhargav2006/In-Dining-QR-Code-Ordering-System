@@ -28,7 +28,7 @@ export default function CustomerPortal() {
   const queryQrToken = searchParams.get('qrToken') || paramQrToken;
   const queryRestaurantId = searchParams.get('restaurantId');
   const targetTableNumber = paramTableNumber || searchParams.get('table') || (queryQrToken ? null : '1');
-  const targetSlug = paramRestaurantSlug || searchParams.get('restaurantSlug') || 'gourmet-bistro';
+  const targetSlug = paramRestaurantSlug || searchParams.get('restaurantSlug') || 'tasty-tacos';
 
   // Contexts
   const {
